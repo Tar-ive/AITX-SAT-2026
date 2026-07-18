@@ -269,8 +269,9 @@ class CoordinatorAPIHandler(BaseHTTPRequestHandler):
 
 # Start local server
 def run_server():
-    server = HTTPServer(("localhost", 8080), CoordinatorAPIHandler)
-    print("[Server] Nemotron Training Coordinator API listening on http://localhost:8080")
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), CoordinatorAPIHandler)
+    print(f"[Server] Nemotron Training Coordinator API listening on http://0.0.0.0:{port}")
     server.serve_forever()
 
 if __name__ == "__main__":
