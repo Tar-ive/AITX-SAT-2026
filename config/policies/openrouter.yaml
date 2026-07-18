@@ -1,0 +1,24 @@
+# Custom NemoClaw policy preset: OpenRouter as inference fallback when
+# NVIDIA endpoints rate-limit. Applied with:
+#   nemoclaw openclaw policy-add --from-file /deploy/config/policies/openrouter.yaml --yes
+
+preset:
+  name: openrouter
+  description: "OpenRouter inference API access (NVIDIA rate-limit fallback)"
+
+network_policies:
+  openrouter:
+    name: openrouter
+    endpoints:
+      - host: openrouter.ai
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow: { method: POST, path: "/api/v1/chat/completions" }
+          - allow: { method: GET, path: "/api/v1/models" }
+    binaries:
+      - { path: /usr/local/bin/node }
+      - { path: /usr/bin/node }
+      - { path: /usr/local/bin/curl }
+      - { path: /usr/bin/curl }

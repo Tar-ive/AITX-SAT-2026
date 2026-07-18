@@ -34,6 +34,20 @@ uv run --with verifiers --with . vf-eval gpu-deal-judge \
   -n 15 -r 3 -s --env-args "{\"memory_file\": \"$LESSONS\"}" || { echo "eval failed"; exit 1; }
 
 RESULTS=$(ls -t "$PWD"/outputs/evals/*/*/results.jsonl | head -1)
+
+# NVIDIA rate-limit fallback: if most rollouts errored, rerun via OpenRouter
+# with the same model (id identical for Super) before recording anything.
+VALID=$(python3 -c "import json,sys; r=[json.loads(l) for l in open('$RESULTS') if l.strip()]; print(sum(1 for x in r if not x.get('error')), len(r))")
+if [ "$(echo "$VALID" | awk '{print ($2>0 && $1*10 < $2*6) ? 1 : 0}')" = "1" ] && [ -n "${OPENROUTER_API_KEY:-}" ]; then
+  echo "NVIDIA eval degraded ($VALID valid/total) — falling back to OpenRouter"
+  OPENAI_API_KEY="$OPENROUTER_API_KEY" uv run --with verifiers --with . vf-eval gpu-deal-judge \
+    -m "nvidia/nemotron-3-super-120b-a12b" \
+    -b "https://openrouter.ai/api/v1" -k OPENAI_API_KEY \
+    -n 15 -r 3 -s --env-args "{\"memory_file\": \"$LESSONS\"}" \
+    && RESULTS=$(ls -t "$PWD"/outputs/evals/*/*/results.jsonl | head -1) \
+    && echo "using OpenRouter results: $RESULTS" \
+    || echo "OpenRouter fallback also failed; keeping NVIDIA results"
+fi
 cd "$REPO"
 python3 scripts/verifiers_to_rsi_csv.py "$RESULTS" \
   --output data/rsi_runs.csv \
