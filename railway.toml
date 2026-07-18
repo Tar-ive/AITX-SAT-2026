@@ -1,0 +1,14 @@
+[build]
+builder = "railpack"
+watchPatterns = [
+  "railway.toml",
+  "Procfile",
+  "requirements.txt",
+  "scripts/**",
+  "dashboard/**",
+  "docs/**"
+]
+
+[deploy]
+startCommand = "python3 scripts/nemotron_coordinator.py"
+restartPolicyType = "on_failure"
