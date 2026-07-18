@@ -1,0 +1,522 @@
+{
+  "summary": {
+    "version": "v0",
+    "model": "nvidia/nemotron-3-super-120b-a12b",
+    "memory": "none (baseline)",
+    "n_scored": 97,
+    "unparsed": 3,
+    "accuracy": 0.567,
+    "precision_deceptive": 0.65,
+    "recall_deceptive": 0.2708,
+    "f1_deceptive": 0.3824,
+    "confusion": {
+      "tp": 13,
+      "fp": 7,
+      "tn": 42,
+      "fn": 35
+    },
+    "dataset": "OpSpam v1.4 fold5 (frozen slice, seed 2026)"
+  },
+  "predictions": [
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_allegro_5.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_intercontinental_1.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_palmer_13.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_palmer_14.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_allegro_3.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_amalfi_17.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_palmer_2.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_intercontinental_3.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_palmer_19.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_palmer_11.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_intercontinental_6.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_amalfi_19.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_allegro_1.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_allegro_19.txt",
+      "gold": "deceptive",
+      "pred": "unparsed"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_allegro_4.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_amalfi_6.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_allegro_20.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_palmer_4.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_palmer_16.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_intercontinental_20.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_intercontinental_7.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_intercontinental_12.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_amalfi_2.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_intercontinental_8.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/deceptive_from_MTurk/d_amalfi_1.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_allegro_5.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_intercontinental_1.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_palmer_13.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_palmer_14.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_allegro_3.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_amalfi_17.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_palmer_2.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_intercontinental_3.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_palmer_19.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_palmer_11.txt",
+      "gold": "truthful",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_intercontinental_6.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_amalfi_19.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_allegro_1.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_allegro_19.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_allegro_4.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_amalfi_6.txt",
+      "gold": "truthful",
+      "pred": "unparsed"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_allegro_20.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_palmer_4.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_palmer_16.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_intercontinental_20.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_intercontinental_7.txt",
+      "gold": "truthful",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_intercontinental_12.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_amalfi_2.txt",
+      "gold": "truthful",
+      "pred": "deceptive"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_intercontinental_8.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "positive_polarity/truthful_from_TripAdvisor/t_amalfi_1.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_allegro_5.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_intercontinental_1.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_palmer_13.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_palmer_14.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_allegro_3.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_amalfi_17.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_palmer_2.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_intercontinental_3.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_palmer_19.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_palmer_11.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_intercontinental_6.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_amalfi_19.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_allegro_1.txt",
+      "gold": "deceptive",
+      "pred": "unparsed"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_allegro_19.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_allegro_4.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_amalfi_6.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_allegro_20.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_palmer_4.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_palmer_16.txt",
+      "gold": "deceptive",
+      "pred": "deceptive"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_intercontinental_20.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_intercontinental_7.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_intercontinental_12.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_amalfi_2.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_intercontinental_8.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/deceptive_from_MTurk/d_amalfi_1.txt",
+      "gold": "deceptive",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_allegro_5.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_intercontinental_1.txt",
+      "gold": "truthful",
+      "pred": "deceptive"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_palmer_13.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_palmer_14.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_allegro_3.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_amalfi_17.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_palmer_2.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_intercontinental_3.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_palmer_19.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_palmer_11.txt",
+      "gold": "truthful",
+      "pred": "deceptive"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_intercontinental_6.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_amalfi_19.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_allegro_1.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_allegro_19.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_allegro_4.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_amalfi_6.txt",
+      "gold": "truthful",
+      "pred": "deceptive"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_allegro_20.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_palmer_4.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_palmer_16.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_intercontinental_20.txt",
+      "gold": "truthful",
+      "pred": "deceptive"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_intercontinental_7.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_intercontinental_12.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_amalfi_2.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_intercontinental_8.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    },
+    {
+      "id": "negative_polarity/truthful_from_Web/t_amalfi_1.txt",
+      "gold": "truthful",
+      "pred": "truthful"
+    }
+  ]
+}
