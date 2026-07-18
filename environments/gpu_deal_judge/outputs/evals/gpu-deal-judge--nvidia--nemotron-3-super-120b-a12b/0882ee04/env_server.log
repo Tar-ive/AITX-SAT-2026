@@ -1,0 +1,6 @@
+2026-07-18 15:38:20 - verifiers.serve.server.env_server.ZMQEnvServer - INFO - Initializing ZMQEnvServer to serve gpu-deal-judge (env_args={}, extra_env_kwargs={'concurrency': 32}, num_workers=1)
+2026-07-18 15:38:20 - verifiers.serve.server.env_server.ZMQEnvServer - INFO - ZMQEnvServer started on tcp://127.0.0.1:60611
+2026-07-18 15:38:20 - verifiers.serve.server.env_router.EnvRouter - INFO - Started worker (id=0, name=gpu-deal-judge-0, address=ipc:///tmp/vf-85892dfb9fdb-gpu-deal-judge-0, pid=86001)
+2026-07-18 15:38:22 - verifiers.utils.process_utils - INFO - Death pipe closed — parent is gone, sending SIGTERM to self
+2026-07-18 15:38:22 - verifiers.serve.server.env_router.EnvRouter - INFO - Router shut down
+2026-07-18 15:38:22 - verifiers.serve.server.env_server.ZMQEnvServer - INFO - ZMQEnvServer shut down

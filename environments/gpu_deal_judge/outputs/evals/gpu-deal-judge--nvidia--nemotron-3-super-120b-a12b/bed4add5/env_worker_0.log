@@ -1,0 +1,9 @@
+2026-07-18 15:39:19 - verifiers.utils.env_utils - INFO - Loading environment: gpu-deal-judge
+2026-07-18 15:39:19 - verifiers.utils.env_utils - INFO - Using default args: memory_file=None
+2026-07-18 15:39:19 - verifiers.utils.env_utils - INFO - Successfully loaded environment 'gpu-deal-judge'
+2026-07-18 15:39:19 - verifiers.utils.thread_utils - INFO - Scaled default executor and 0 registered executor(s) ()
+2026-07-18 15:39:19 - verifiers.serve.server.env_worker.EnvWorker - INFO - Initialized worker gpu-deal-judge-0 on ipc:///tmp/vf-969f08eb6ee3-gpu-deal-judge-0
+2026-07-18 15:39:19 - verifiers.utils.thread_utils - INFO - Scaled default executor and 0 registered executor(s) ()
+2026-07-18 15:39:19 - verifiers.serve.server.env_worker.EnvWorker - INFO - Starting worker gpu-deal-judge-0
+2026-07-18 15:40:13 - verifiers.utils.process_utils - INFO - Death pipe closed — parent is gone, sending SIGTERM to self
+2026-07-18 15:40:13 - verifiers.serve.server.env_worker.EnvWorker - INFO - Shut down worker gpu-deal-judge-0

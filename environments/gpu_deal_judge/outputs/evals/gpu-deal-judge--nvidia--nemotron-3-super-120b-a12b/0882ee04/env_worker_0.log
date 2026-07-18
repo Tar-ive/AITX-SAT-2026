@@ -1,0 +1,989 @@
+2026-07-18 15:38:21 - verifiers.utils.env_utils - INFO - Loading environment: gpu-deal-judge
+2026-07-18 15:38:21 - verifiers.utils.env_utils - INFO - Using default args: memory_file=None
+2026-07-18 15:38:21 - verifiers.utils.env_utils - INFO - Successfully loaded environment 'gpu-deal-judge'
+2026-07-18 15:38:21 - verifiers.utils.thread_utils - INFO - Scaled default executor and 0 registered executor(s) ()
+2026-07-18 15:38:21 - verifiers.serve.server.env_worker.EnvWorker - INFO - Initialized worker gpu-deal-judge-0 on ipc:///tmp/vf-85892dfb9fdb-gpu-deal-judge-0
+2026-07-18 15:38:21 - verifiers.utils.thread_utils - INFO - Scaled default executor and 0 registered executor(s) ()
+2026-07-18 15:38:21 - verifiers.serve.server.env_worker.EnvWorker - INFO - Starting worker gpu-deal-judge-0
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - ERROR - Error processing request 1c8d774754f6437f988063c787cb71a8: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+Traceback (most recent call last):
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 202, in process_request
+    response = await self.handle_run_group(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 154, in handle_run_group
+    outputs = await self.env.run_group(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 812, in run_group
+    group_states = await maybe_retry(run_group_attempt, max_retries=max_retries)()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/async_utils.py", line 222, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 805, in run_group_attempt
+    return await self._run_group_states(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 705, in _run_group_states
+    group_states = await asyncio.gather(*rollout_tasks)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 217, in rollout
+    await asyncio.wait_for(rollout_loop(), timeout=self.timeout_seconds)
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 205, in rollout_loop
+    response = await self.get_model_response(state, prompt_messages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 526, in get_model_response
+    response = await client.get_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/client.py", line 131, in get_response
+    native_response = await self.get_native_response(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 72, in wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 343, in get_native_response
+    return await post_chat_completion_with_routed_experts_sidecar(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/client_utils.py", line 104, in post_chat_completion_with_routed_experts_sidecar
+    raw_response = await client.post(
+                   ^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1931, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1716, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+2026-07-18 15:38:22 - verifiers.utils.process_utils - INFO - Death pipe closed — parent is gone, sending SIGTERM to self
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - ERROR - Error processing request 3cdef6fcd3dc48dda6e3dc391cc62e01: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+Traceback (most recent call last):
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 202, in process_request
+    response = await self.handle_run_group(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 154, in handle_run_group
+    outputs = await self.env.run_group(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 812, in run_group
+    group_states = await maybe_retry(run_group_attempt, max_retries=max_retries)()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/async_utils.py", line 222, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 805, in run_group_attempt
+    return await self._run_group_states(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 705, in _run_group_states
+    group_states = await asyncio.gather(*rollout_tasks)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 217, in rollout
+    await asyncio.wait_for(rollout_loop(), timeout=self.timeout_seconds)
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 205, in rollout_loop
+    response = await self.get_model_response(state, prompt_messages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 526, in get_model_response
+    response = await client.get_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/client.py", line 131, in get_response
+    native_response = await self.get_native_response(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 72, in wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 343, in get_native_response
+    return await post_chat_completion_with_routed_experts_sidecar(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/client_utils.py", line 104, in post_chat_completion_with_routed_experts_sidecar
+    raw_response = await client.post(
+                   ^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1931, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1716, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - ERROR - Error processing request 796f6dac34864285899f96859d5ddb87: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+Traceback (most recent call last):
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 202, in process_request
+    response = await self.handle_run_group(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 154, in handle_run_group
+    outputs = await self.env.run_group(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 812, in run_group
+    group_states = await maybe_retry(run_group_attempt, max_retries=max_retries)()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/async_utils.py", line 222, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 805, in run_group_attempt
+    return await self._run_group_states(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 705, in _run_group_states
+    group_states = await asyncio.gather(*rollout_tasks)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 217, in rollout
+    await asyncio.wait_for(rollout_loop(), timeout=self.timeout_seconds)
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 205, in rollout_loop
+    response = await self.get_model_response(state, prompt_messages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 526, in get_model_response
+    response = await client.get_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/client.py", line 131, in get_response
+    native_response = await self.get_native_response(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 72, in wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 343, in get_native_response
+    return await post_chat_completion_with_routed_experts_sidecar(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/client_utils.py", line 104, in post_chat_completion_with_routed_experts_sidecar
+    raw_response = await client.post(
+                   ^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1931, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1716, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - ERROR - Error processing request 3c71738f91914873ae39c3b709536b43: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+Traceback (most recent call last):
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 202, in process_request
+    response = await self.handle_run_group(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 154, in handle_run_group
+    outputs = await self.env.run_group(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 812, in run_group
+    group_states = await maybe_retry(run_group_attempt, max_retries=max_retries)()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/async_utils.py", line 222, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 805, in run_group_attempt
+    return await self._run_group_states(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 705, in _run_group_states
+    group_states = await asyncio.gather(*rollout_tasks)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 217, in rollout
+    await asyncio.wait_for(rollout_loop(), timeout=self.timeout_seconds)
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 205, in rollout_loop
+    response = await self.get_model_response(state, prompt_messages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 526, in get_model_response
+    response = await client.get_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/client.py", line 131, in get_response
+    native_response = await self.get_native_response(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 72, in wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 343, in get_native_response
+    return await post_chat_completion_with_routed_experts_sidecar(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/client_utils.py", line 104, in post_chat_completion_with_routed_experts_sidecar
+    raw_response = await client.post(
+                   ^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1931, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1716, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - ERROR - Error processing request 5c7aacba7089428c937d8189b96a3959: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+Traceback (most recent call last):
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 202, in process_request
+    response = await self.handle_run_group(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 154, in handle_run_group
+    outputs = await self.env.run_group(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 812, in run_group
+    group_states = await maybe_retry(run_group_attempt, max_retries=max_retries)()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/async_utils.py", line 222, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 805, in run_group_attempt
+    return await self._run_group_states(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 705, in _run_group_states
+    group_states = await asyncio.gather(*rollout_tasks)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 217, in rollout
+    await asyncio.wait_for(rollout_loop(), timeout=self.timeout_seconds)
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 205, in rollout_loop
+    response = await self.get_model_response(state, prompt_messages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 526, in get_model_response
+    response = await client.get_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/client.py", line 131, in get_response
+    native_response = await self.get_native_response(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 72, in wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 343, in get_native_response
+    return await post_chat_completion_with_routed_experts_sidecar(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/client_utils.py", line 104, in post_chat_completion_with_routed_experts_sidecar
+    raw_response = await client.post(
+                   ^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1931, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1716, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - ERROR - Error processing request a54f15c366e94e51b4cdb73cbf8e602b: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+Traceback (most recent call last):
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 202, in process_request
+    response = await self.handle_run_group(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 154, in handle_run_group
+    outputs = await self.env.run_group(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 812, in run_group
+    group_states = await maybe_retry(run_group_attempt, max_retries=max_retries)()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/async_utils.py", line 222, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 805, in run_group_attempt
+    return await self._run_group_states(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 705, in _run_group_states
+    group_states = await asyncio.gather(*rollout_tasks)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 217, in rollout
+    await asyncio.wait_for(rollout_loop(), timeout=self.timeout_seconds)
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 205, in rollout_loop
+    response = await self.get_model_response(state, prompt_messages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 526, in get_model_response
+    response = await client.get_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/client.py", line 131, in get_response
+    native_response = await self.get_native_response(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 72, in wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 343, in get_native_response
+    return await post_chat_completion_with_routed_experts_sidecar(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/client_utils.py", line 104, in post_chat_completion_with_routed_experts_sidecar
+    raw_response = await client.post(
+                   ^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1931, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1716, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - ERROR - Error processing request 9ce5549bfc3a42af9936477feb8f7a2a: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+Traceback (most recent call last):
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 202, in process_request
+    response = await self.handle_run_group(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 154, in handle_run_group
+    outputs = await self.env.run_group(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 812, in run_group
+    group_states = await maybe_retry(run_group_attempt, max_retries=max_retries)()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/async_utils.py", line 222, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 805, in run_group_attempt
+    return await self._run_group_states(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 705, in _run_group_states
+    group_states = await asyncio.gather(*rollout_tasks)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 217, in rollout
+    await asyncio.wait_for(rollout_loop(), timeout=self.timeout_seconds)
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 205, in rollout_loop
+    response = await self.get_model_response(state, prompt_messages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 526, in get_model_response
+    response = await client.get_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/client.py", line 131, in get_response
+    native_response = await self.get_native_response(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 72, in wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 343, in get_native_response
+    return await post_chat_completion_with_routed_experts_sidecar(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/client_utils.py", line 104, in post_chat_completion_with_routed_experts_sidecar
+    raw_response = await client.post(
+                   ^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1931, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1716, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - ERROR - Error processing request ac0584c54a5b452aade0004973fa2d90: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+Traceback (most recent call last):
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 202, in process_request
+    response = await self.handle_run_group(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 154, in handle_run_group
+    outputs = await self.env.run_group(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 812, in run_group
+    group_states = await maybe_retry(run_group_attempt, max_retries=max_retries)()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/async_utils.py", line 222, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 805, in run_group_attempt
+    return await self._run_group_states(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 705, in _run_group_states
+    group_states = await asyncio.gather(*rollout_tasks)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 217, in rollout
+    await asyncio.wait_for(rollout_loop(), timeout=self.timeout_seconds)
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 205, in rollout_loop
+    response = await self.get_model_response(state, prompt_messages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 526, in get_model_response
+    response = await client.get_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/client.py", line 131, in get_response
+    native_response = await self.get_native_response(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 72, in wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 343, in get_native_response
+    return await post_chat_completion_with_routed_experts_sidecar(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/client_utils.py", line 104, in post_chat_completion_with_routed_experts_sidecar
+    raw_response = await client.post(
+                   ^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1931, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1716, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - ERROR - Error processing request 2266c67c67164362a91ad3a677171197: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+Traceback (most recent call last):
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 202, in process_request
+    response = await self.handle_run_group(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 154, in handle_run_group
+    outputs = await self.env.run_group(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 812, in run_group
+    group_states = await maybe_retry(run_group_attempt, max_retries=max_retries)()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/async_utils.py", line 222, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 805, in run_group_attempt
+    return await self._run_group_states(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 705, in _run_group_states
+    group_states = await asyncio.gather(*rollout_tasks)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 217, in rollout
+    await asyncio.wait_for(rollout_loop(), timeout=self.timeout_seconds)
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 205, in rollout_loop
+    response = await self.get_model_response(state, prompt_messages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 526, in get_model_response
+    response = await client.get_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/client.py", line 131, in get_response
+    native_response = await self.get_native_response(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 72, in wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 343, in get_native_response
+    return await post_chat_completion_with_routed_experts_sidecar(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/client_utils.py", line 104, in post_chat_completion_with_routed_experts_sidecar
+    raw_response = await client.post(
+                   ^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1931, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1716, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - ERROR - Error processing request c3487448e5a24a4d9d6ef0f9e75e19b5: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+Traceback (most recent call last):
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 202, in process_request
+    response = await self.handle_run_group(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 154, in handle_run_group
+    outputs = await self.env.run_group(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 812, in run_group
+    group_states = await maybe_retry(run_group_attempt, max_retries=max_retries)()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/async_utils.py", line 222, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 805, in run_group_attempt
+    return await self._run_group_states(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 705, in _run_group_states
+    group_states = await asyncio.gather(*rollout_tasks)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 217, in rollout
+    await asyncio.wait_for(rollout_loop(), timeout=self.timeout_seconds)
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 205, in rollout_loop
+    response = await self.get_model_response(state, prompt_messages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 526, in get_model_response
+    response = await client.get_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/client.py", line 131, in get_response
+    native_response = await self.get_native_response(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 72, in wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 343, in get_native_response
+    return await post_chat_completion_with_routed_experts_sidecar(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/client_utils.py", line 104, in post_chat_completion_with_routed_experts_sidecar
+    raw_response = await client.post(
+                   ^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1931, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1716, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - ERROR - Error processing request 96192170275648839e0875ec78f6bbde: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+Traceback (most recent call last):
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 202, in process_request
+    response = await self.handle_run_group(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/serve/server/env_worker.py", line 154, in handle_run_group
+    outputs = await self.env.run_group(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 812, in run_group
+    group_states = await maybe_retry(run_group_attempt, max_retries=max_retries)()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 193, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 112, in __call__
+    do = await self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 157, in iter
+    result = await action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/_utils.py", line 111, in inner
+    return call(*args, **kwargs)
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/__init__.py", line 393, in <lambda>
+    self._add_action_func(lambda rs: rs.outcome.result())
+                                     ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/tenacity/asyncio/__init__.py", line 116, in __call__
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/async_utils.py", line 222, in wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 805, in run_group_attempt
+    return await self._run_group_states(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 705, in _run_group_states
+    group_states = await asyncio.gather(*rollout_tasks)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 217, in rollout
+    await asyncio.wait_for(rollout_loop(), timeout=self.timeout_seconds)
+  File "/Users/tarive/.local/share/uv/python/cpython-3.13.5-macos-aarch64-none/lib/python3.13/asyncio/tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/multiturn_env.py", line 205, in rollout_loop
+    response = await self.get_model_response(state, prompt_messages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/envs/environment.py", line 526, in get_model_response
+    response = await client.get_response(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/client.py", line 131, in get_response
+    native_response = await self.get_native_response(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 72, in wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/clients/openai_chat_completions_client.py", line 343, in get_native_response
+    return await post_chat_completion_with_routed_experts_sidecar(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/verifiers/utils/client_utils.py", line 104, in post_chat_completion_with_routed_experts_sidecar
+    raw_response = await client.post(
+                   ^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1931, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/tarive/.cache/uv/archive-v0/-NDdJvYoif9HzlFys5FlR/lib/python3.13/site-packages/openai/_base_client.py", line 1716, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.AuthenticationError: Error code: 401 - {'status': 401, 'title': 'Unauthorized', 'detail': 'Authentication failed'}
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - INFO - Cancelling 1 active tasks on worker gpu-deal-judge-0
+2026-07-18 15:38:22 - verifiers.serve.server.env_worker.EnvWorker - INFO - Shut down worker gpu-deal-judge-0

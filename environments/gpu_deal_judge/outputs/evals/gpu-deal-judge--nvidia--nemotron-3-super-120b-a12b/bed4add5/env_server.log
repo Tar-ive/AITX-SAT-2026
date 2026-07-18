@@ -1,0 +1,21 @@
+2026-07-18 15:39:18 - verifiers.serve.server.env_server.ZMQEnvServer - INFO - Initializing ZMQEnvServer to serve gpu-deal-judge (env_args={}, extra_env_kwargs={'concurrency': 32}, num_workers=1)
+2026-07-18 15:39:18 - verifiers.serve.server.env_server.ZMQEnvServer - INFO - ZMQEnvServer started on tcp://127.0.0.1:60717
+2026-07-18 15:39:18 - verifiers.serve.server.env_router.EnvRouter - INFO - Started worker (id=0, name=gpu-deal-judge-0, address=ipc:///tmp/vf-969f08eb6ee3-gpu-deal-judge-0, pid=86793)
+2026-07-18 15:39:28 - verifiers.serve.server.env_router.EnvRouter - INFO - Active tasks: 0 (W0: ?)
+  Server | Lag: min=-0ms mean=1ms median=1ms p90=2ms p99=2ms max=2ms (n=99)
+  W0     | no stats yet
+2026-07-18 15:39:38 - verifiers.serve.server.env_router.EnvRouter - INFO - Active tasks: 11 (W0: 11)
+  Server | Lag: min=-0ms mean=1ms median=1ms p90=2ms p99=2ms max=2ms (n=198)
+  W0     | Lag: min=-1ms mean=1ms median=1ms p90=2ms p99=2ms max=12ms (n=98)
+2026-07-18 15:39:48 - verifiers.serve.server.env_router.EnvRouter - INFO - Active tasks: 11 (W0: 11)
+  Server | Lag: min=-0ms mean=1ms median=1ms p90=2ms p99=2ms max=2ms (n=298)
+  W0     | Lag: min=-1ms mean=1ms median=1ms p90=2ms p99=2ms max=12ms (n=198)
+2026-07-18 15:39:58 - verifiers.serve.server.env_router.EnvRouter - INFO - Active tasks: 11 (W0: 11)
+  Server | Lag: min=-0ms mean=1ms median=1ms p90=2ms p99=3ms max=3ms (n=397)
+  W0     | Lag: min=-1ms mean=1ms median=1ms p90=2ms p99=3ms max=12ms (n=296)
+2026-07-18 15:40:08 - verifiers.serve.server.env_router.EnvRouter - INFO - Active tasks: 8 (W0: 8)
+  Server | Lag: min=-0ms mean=1ms median=1ms p90=2ms p99=3ms max=3ms (n=496)
+  W0     | Lag: min=-1ms mean=1ms median=1ms p90=2ms p99=4ms max=12ms (n=395)
+2026-07-18 15:40:13 - verifiers.utils.process_utils - INFO - Death pipe closed — parent is gone, sending SIGTERM to self
+2026-07-18 15:40:13 - verifiers.serve.server.env_router.EnvRouter - INFO - Router shut down
+2026-07-18 15:40:13 - verifiers.serve.server.env_server.ZMQEnvServer - INFO - ZMQEnvServer shut down

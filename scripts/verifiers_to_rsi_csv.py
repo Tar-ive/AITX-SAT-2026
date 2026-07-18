@@ -81,7 +81,14 @@ def main():
         if len(values) != len(outputs):
             raise ValueError(f"metric missing from rollout outputs: {metric}")
         aggregates[metric] = mean_ci(values)
-    latency = median_ci([float(row["timing"]["total_ms"]) / 1000 for row in outputs])
+    def _latency_s(row):
+        t = row.get("timing", {}) or {}
+        if "total_ms" in t:
+            return float(t["total_ms"]) / 1000
+        if "total" in t:
+            return float(t["total"])
+        return 0.0
+    latency = median_ci([_latency_s(row) for row in outputs])
 
     existing = []
     if args.output.exists() and not args.reset:
