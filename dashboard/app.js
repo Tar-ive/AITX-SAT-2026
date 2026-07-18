@@ -144,7 +144,7 @@ const defaultEvaluations = [
 ];
 
 // Server API Endpoint config
-const SERVER_URL = "http://localhost:8080";
+const SERVER_URL = "https://nemoclaw-coordinator-api-production.up.railway.app";
 let isLiveServerMode = false;
 let pollingInterval = null;
 
