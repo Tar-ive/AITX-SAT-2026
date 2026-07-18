@@ -4,3 +4,4 @@ infra/terraform/.terraform/
 infra/terraform/*.tfstate*
 infra/terraform/*.pem
 infra/terraform/.terraform.lock.hcl
+scripts/nemotron_config.json
