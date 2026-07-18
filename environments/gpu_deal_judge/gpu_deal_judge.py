@@ -28,6 +28,9 @@ def _find_golden() -> Path:
         p = base / "scripts" / "golden_dataset.json"
         if p.exists():
             return p
+    bundled = Path(__file__).with_name("data") / "golden_dataset.json"
+    if bundled.exists():
+        return bundled
     return Path(__file__).resolve().parents[2] / "scripts" / "golden_dataset.json"
 
 GOLDEN = _find_golden()

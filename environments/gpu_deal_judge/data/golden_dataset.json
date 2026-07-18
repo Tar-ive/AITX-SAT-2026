@@ -1,0 +1,166 @@
+[
+  {
+    "id": "TC-01",
+    "name": "ASUS ROG Strix RTX 5080 (Warranty-Critical)",
+    "prompt": "I need a brand-new, factory-sealed ASUS ROG Strix RTX 5080 with a full manufacturer warranty. Shipped by this weekend.",
+    "expected_platform": "Amazon (Direct), Newegg, or Best Buy",
+    "ground_truth": {
+      "condition": "New/Factory-Sealed",
+      "avoid_platforms": ["eBay", "Amazon Marketplace Third-Party"],
+      "max_lead_time_days": 3
+    }
+  },
+  {
+    "id": "TC-02",
+    "name": "M4 MacBook Pro 14-inch (AppleCare Eligible)",
+    "prompt": "Find the best price on a brand-new M4 MacBook Pro 14-inch. I intend to buy AppleCare+ for it, so it must be an eligible retail unit.",
+    "expected_platform": "Apple Store, B&H Photo, Amazon (Direct), or Best Buy",
+    "ground_truth": {
+      "condition": "New/Retail-Eligible",
+      "avoid_platforms": ["Back Market", "Swappa", "eBay"],
+      "applecare_eligible": true
+    }
+  },
+  {
+    "id": "TC-03",
+    "name": "California Sales Tax Avoidance (Tax Optimization)",
+    "prompt": "I want to buy a brand-new RTX 5090. I live in California and want to legally avoid or minimize upfront state sales tax if a major authorized retailer offers a workaround.",
+    "expected_platform": "B&H Photo Video (via Payboo)",
+    "ground_truth": {
+      "retailer": "B&H Photo Video",
+      "payment_method": "Payboo Card",
+      "tax_refund_equivalent": true
+    }
+  },
+  {
+    "id": "TC-04",
+    "name": "M3 MacBook Air Customer Return (Open Box)",
+    "prompt": "I want an M3 MacBook Air. I don't want a heavily used one, just a customer return or open-box unit that still has 10+ months of original Apple warranty left.",
+    "expected_platform": "Best Buy Open-Box (Excellent) or Apple Certified Refurbished",
+    "ground_truth": {
+      "condition": "Open-Box Excellent / Certified Refurbished",
+      "warranty_transferable": true,
+      "avoid_platforms": ["eBay", "Craigslist"]
+    }
+  },
+  {
+    "id": "TC-05",
+    "name": "5x Refurbished MacBook Pros (Interns Setup)",
+    "prompt": "We need 5 refurbished M2 MacBook Pros for our new interns. They must come with a verified 1-year functional warranty so our IT team doesn't have to troubleshoot them.",
+    "expected_platform": "Amazon Renewed (Premium) or Back Market",
+    "ground_truth": {
+      "quantity": 5,
+      "condition": "Refurbished",
+      "warranty_minimum_months": 12,
+      "avoid_platforms": ["eBay (individual sellers)"]
+    }
+  },
+  {
+    "id": "TC-06",
+    "name": "Broken RTX 3080 for Shroud Harvest (As-Is parts)",
+    "prompt": "I'm looking for a broken or 'for parts' RTX 3080. I want to harvest the cooling shroud and fans to fix my own card. Price must be under $100.",
+    "expected_platform": "eBay (Filtered by Condition: For parts)",
+    "ground_truth": {
+      "condition": "For parts or not working",
+      "max_price": 100.0,
+      "target_platform": "eBay"
+    }
+  },
+  {
+    "id": "TC-07",
+    "name": "Used RTX 4070 Ti with Benchmark Proof",
+    "prompt": "I want a used RTX 4070 Ti, but I want to see actual timestamped photos of the card running a benchmark from a trusted individual seller, not a liquidator.",
+    "expected_platform": "Swappa or r/hardwareswap",
+    "ground_truth": {
+      "condition": "Used",
+      "verification_required": true,
+      "avoid_platforms": ["eBay bulk liquidators"]
+    }
+  },
+  {
+    "id": "TC-08",
+    "name": "20x Corsair Vengeance RAM (3-Day LAN Center Deadline)",
+    "prompt": "We are building 20 custom gaming PCs for a LAN center. We need 20 identical kits of Corsair Vengeance 32GB RAM. They must arrive within 3 days or we miss our opening deadline.",
+    "expected_platform": "Amazon Business (Prime) or Newegg Business",
+    "ground_truth": {
+      "quantity": 20,
+      "max_lead_time_days": 3,
+      "avoid_platforms": ["Alibaba", "AliExpress"]
+    }
+  },
+  {
+    "id": "TC-09",
+    "name": "100x ECC Server RAM Modules (Direct Factory Sourcing)",
+    "prompt": "We are opening an AI rental cluster. We need to buy 100 units of generic, unbranded DDR5 server ECC RAM modules. Lead time doesn't matter; lowest factory-direct price.",
+    "expected_platform": "Alibaba or Global Sources",
+    "ground_truth": {
+      "quantity": 100,
+      "sourcing_type": "Direct Factory / Wholesale",
+      "target_platforms": ["Alibaba", "Global Sources"]
+    }
+  },
+  {
+    "id": "TC-10",
+    "name": "10x Emulation GPUs with Escrow Protection",
+    "prompt": "I want to buy 10 budget RX 580 GPUs to build low-end emulation machines. Cheap, but with escrow buyer protection so the seller doesn't ghost me with my money.",
+    "expected_platform": "AliExpress",
+    "ground_truth": {
+      "quantity": 10,
+      "escrow_protection": true,
+      "target_platform": "AliExpress"
+    }
+  },
+  {
+    "id": "TC-11",
+    "name": "Legacy Motherboard for 4th-Gen Intel CPU",
+    "prompt": "Our legacy office file server needs a replacement motherboard that supports an ancient Intel Core 4th-gen processor. Where can I find one?",
+    "expected_platform": "eBay or ServerMonkey",
+    "ground_truth": {
+      "condition": "Legacy / Discontinued",
+      "avoid_platforms": ["Best Buy", "Amazon New Product Lines"]
+    }
+  },
+  {
+    "id": "TC-12",
+    "name": "50x Pulled Samsung RAM Chips (Decommissioned Server)",
+    "prompt": "I want to buy a bulk lot of 50 pulled/used Samsung RAM chips from decommissioned data centers. Sourced from Asian liquidation hubs.",
+    "expected_platform": "Taobao (via agent) or AliExpress",
+    "ground_truth": {
+      "quantity": 50,
+      "sourcing_type": "Decommissioned Pulls",
+      "target_platforms": ["Taobao", "AliExpress"]
+    }
+  },
+  {
+    "id": "TC-13",
+    "name": "Cheapest 64GB DDR5 RAM (Counterfeit Filter)",
+    "prompt": "Find me the absolute cheapest 64GB DDR5 desktop RAM kit on the internet. I don't care where it comes from.",
+    "expected_platform": "Amazon or Newegg (Silicon Power/Crucial)",
+    "ground_truth": {
+      "avoid_platforms": ["Temu", "Wish"],
+      "flag_counterfeits": true,
+      "min_price": 100.0
+    }
+  },
+  {
+    "id": "TC-14",
+    "name": "MacBook Price-Match Best Buy Verification",
+    "prompt": "I see a price drop on a MacBook Pro at an unauthorized store, but I want to buy it from Best Buy because I have a store credit card there. Does Best Buy price-match them?",
+    "expected_platform": "Best Buy Price Match Checker",
+    "ground_truth": {
+      "policy_check": "Best Buy Competitor Policy",
+      "avoid_platforms": ["eBay", "Unauthorized Retailers"]
+    }
+  },
+  {
+    "id": "TC-15",
+    "name": "SMD Capacitor Soldering Sourcing (MacBook Repair)",
+    "prompt": "I'm soldering a broken MacBook logic board and I need 50 pieces of a specific replacement SMD capacitor (0402 size, 10uF). Where do I buy these?",
+    "expected_platform": "DigiKey, Mouser, or Newark",
+    "ground_truth": {
+      "quantity": 50,
+      "component_type": "SMD Electronic Component",
+      "target_platforms": ["DigiKey", "Mouser", "Newark"]
+    }
+  }
+]

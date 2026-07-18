@@ -237,19 +237,29 @@ class CoordinatorAPIHandler(BaseHTTPRequestHandler):
             return self._reply(400, {"error": "invalid or missing JSON body"})
 
         if parsed_path.path == "/api/evaluations":
-            # Append rows from the EC2 nightly RSI cycle (list or single object)
             rows = body if isinstance(body, list) else [body]
             existing = []
             if os.path.exists(EVAL_OUTPUT_PATH):
                 try:
                     existing = json.load(open(EVAL_OUTPUT_PATH))
-                except json.JSONDecodeError:
+                except Exception:
                     existing = []
-            existing.extend(rows)
+            for new_ev in rows:
+                # Thaman's dedupe: upsert by (version, caseId) when both present
+                match_idx = -1
+                if new_ev.get("version") is not None and new_ev.get("caseId") is not None:
+                    for idx, ex in enumerate(existing):
+                        if ex.get("version") == new_ev.get("version") and ex.get("caseId") == new_ev.get("caseId"):
+                            match_idx = idx
+                            break
+                if match_idx != -1:
+                    existing[match_idx] = new_ev
+                else:
+                    existing.append(new_ev)
             os.makedirs(os.path.dirname(EVAL_OUTPUT_PATH), exist_ok=True)
             with open(EVAL_OUTPUT_PATH, "w") as f:
                 json.dump(existing, f, indent=2)
-            return self._reply(200, {"stored": len(rows), "total": len(existing)})
+            return self._reply(200, {"status": "success", "stored": len(rows), "total": len(existing)})
 
         if parsed_path.path == "/api/episodic-memory":
             rows = body if isinstance(body, list) else [body]
@@ -257,13 +267,13 @@ class CoordinatorAPIHandler(BaseHTTPRequestHandler):
             if os.path.exists(MEMORY_OUTPUT_PATH):
                 try:
                     existing = json.load(open(MEMORY_OUTPUT_PATH))
-                except json.JSONDecodeError:
+                except Exception:
                     existing = []
             existing.extend(rows)
             os.makedirs(os.path.dirname(MEMORY_OUTPUT_PATH), exist_ok=True)
             with open(MEMORY_OUTPUT_PATH, "w") as f:
                 json.dump(existing, f, indent=2)
-            return self._reply(200, {"stored": len(rows), "total": len(existing)})
+            return self._reply(200, {"status": "success", "stored": len(rows), "total": len(existing)})
 
         return self._reply(404, {"error": "unknown endpoint"})
 
@@ -310,6 +320,17 @@ class CoordinatorAPIHandler(BaseHTTPRequestHandler):
             else:
                 self.wfile.write(json.dumps([]).encode())
                 
+        elif parsed_path.path == "/api/episodic-memory":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            memory_file = os.path.join(BASE_DIR, "dashboard", "episodic_memory.json")
+            if os.path.exists(memory_file):
+                with open(memory_file, "r") as f:
+                    self.wfile.write(f.read().encode())
+            else:
+                self.wfile.write(json.dumps([]).encode())
+                
         elif parsed_path.path == "/api/run-research":
             if coordinator_status == "idle":
                 # Start loop in background thread
@@ -331,12 +352,9 @@ class CoordinatorAPIHandler(BaseHTTPRequestHandler):
 
 # Start local server
 def run_server():
-    # Railway injects PORT and requires binding 0.0.0.0; localhost stays the
-    # default for laptop runs.
     port = int(os.environ.get("PORT", 8080))
-    host = "0.0.0.0" if os.environ.get("PORT") else "localhost"
-    server = HTTPServer((host, port), CoordinatorAPIHandler)
-    print(f"[Server] Nemotron Training Coordinator API listening on http://{host}:{port}")
+    server = HTTPServer(("0.0.0.0", port), CoordinatorAPIHandler)
+    print(f"[Server] Nemotron Training Coordinator API listening on http://0.0.0.0:{port}")
     server.serve_forever()
 
 if __name__ == "__main__":

@@ -11,3 +11,4 @@ infra/terraform/*.pem
 infra/terraform/.terraform.lock.hcl
 .playwright-cli/
 output/playwright/
+scripts/nemotron_config.json

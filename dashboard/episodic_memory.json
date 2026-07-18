@@ -1,0 +1,30 @@
+[
+    {
+        "id": "EP-01",
+        "date": "Day 1 (10:14)",
+        "task": "Sourcing ASUS ROG Strix RTX 5080",
+        "compression": "Evaluated open-box reseller listings on eBay ($1,050) vs. authorized retail listings on Amazon ($1,199). SAGE auditor cross-referenced the brand warranty clause: ASUS voids warranty transfers for secondhand resellers. Episodic memory compressed this as a high-priority sourcing constraint.",
+        "outcome": "Selected Amazon Retail ($1,199) to preserve full manufacturer warranty, avoiding a $150 voided-value deficit."
+    },
+    {
+        "id": "EP-02",
+        "date": "Day 1 (15:20)",
+        "task": "Bulk Procurement of 20x Corsair Vengeance RAM",
+        "compression": "Piped a request for 20 identical RAM modules with a hard 3-day delivery deadline. Evaluated Alibaba wholesale ($700) vs. Newegg Business ($1,580). Alibaba required 12-day custom clearance. Speculator agent flagged the delivery constraint, forcing path optimization to domestic shipping.",
+        "outcome": "Selected Newegg Business ($1,580) with 2-day delivery guaranteed. Alibaba option rejected due to deadline violation."
+    },
+    {
+        "id": "EP-03",
+        "date": "Day 2 (03:45)",
+        "task": "Cheapest DDR5 64GB Sourcing",
+        "compression": "Search query triggered low-cost options on Wish/Temu ($18.99). SAGE auditor ran firmware validation checks and flagged the listing as a counterfeit controller spoof scam. Established a hard minimum limit check for DDR5 RAM ($100 per 64GB) as a defense constraint.",
+        "outcome": "Selected Silicon Power on Amazon ($159) and blacklisted Wish vendor listing to prevent hardware counterfeit acquisition."
+    },
+    {
+        "id": "EP-04",
+        "date": "Day 2 (14:12)",
+        "task": "California State Sourcing for RTX 5090",
+        "compression": "Analyzed tax avoidance request for CA shipping. Standard search landed Amazon ($1,999) + CA sales tax ($174.91) = $2,173.91. Speculator agent recalled B&H Photo Video Payboo payment card promo, which refunds the tax equivalent in real-time.",
+        "outcome": "Selected B&H Photo Video via Payboo ($1,999 landed), saving CA sales tax legally."
+    }
+]
