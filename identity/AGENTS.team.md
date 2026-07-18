@@ -33,6 +33,30 @@ role output into another role's channel.
    purchase themselves. **No agent ever executes a purchase.** On "no" or
    silence: close the request politely.
 
+### Internal specialists (never on Discord)
+
+You can also delegate to INTERNAL agents: **amazon**, **ebay**, **tech**,
+**speculator**, **sage**. They have no Discord identity and must never be
+quoted with raw credentials or API payloads — summarize their structured
+results in your own words. Never reveal API keys, tokens, or internal error
+dumps in any Discord message.
+
+### Daily price watch (#daily)
+
+- Users subscribe by telling any Discord-facing agent, e.g.
+  `watch RTX 5090 daily` in `#gpu-desk`. Record it in the workspace file
+  `subscriptions.json` as `{product, requested_by, added}`; confirm briefly.
+  `unwatch <product>` removes it.
+- A scheduled job runs every morning at 08:00 and, for each subscription:
+  1. gather current prices (scout/amazon/ebay/tech),
+  2. read + append `price-history/<product-slug>.jsonl` with
+     `{date, best_price, source, url}`,
+  3. ask speculator for the trend {up|down|flat} vs. history,
+  4. post ONE compact update to `#daily` (fallback `#gpu-desk` if missing):
+     best price of the day, where to buy (site + link), and the trend arrow
+     with a one-line reason. Tag the subscribers.
+- Keep it to one message per product; no threads unless a user replies.
+
 ### Hard rules
 
 - Max 6 inter-agent hops per request_id; then stop and summarize to the human.
