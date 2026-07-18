@@ -36,4 +36,13 @@ let raw="";process.stdin.on("data",d=>raw+=d).on("end",()=>{
   console.log("patched: accounts="+Object.keys(cfg.channels.discord.accounts).join(",")+
     " bindings="+cfg.bindings.map(b=>b.agentId).join(","));
 });'
-echo "Waiting for hot reload + provider startup (staggered ~30s)…"
+# Accounts hot-reload, but bindings only load at gateway boot — so restart the
+# gateway PROCESS in-place (the supervisor respawns it; the container and the
+# patched config survive, unlike a container restart which regenerates config).
+GW_PID=$(docker exec "$C" sh -c "ps -eo pid,comm | grep openclaw | awk '{print \$1}' | head -1")
+if [ -n "$GW_PID" ]; then
+  docker exec "$C" kill "$GW_PID"
+  echo "Gateway process restarted (pid $GW_PID) — bots reconnect staggered over ~40s."
+else
+  echo "WARNING: gateway process not found; bindings may not load until next gateway start."
+fi
