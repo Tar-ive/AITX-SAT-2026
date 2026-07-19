@@ -168,8 +168,23 @@ def snapshot(entry):
     return hist
 
 
+def resync_coordinator():
+    """Railway storage is ephemeral: on start, re-POST the full local history
+    so a redeploy that wiped the coordinator self-heals within one cycle."""
+    if not COORD or not SNAPSHOTS.exists():
+        return
+    try:
+        hist = json.loads(SNAPSHOTS.read_text())
+        requests.post(f"{COORD}/api/radar", timeout=20,
+                      json=[{"source": "autoresearch-loop", **e} for e in hist])
+        print(f"[autoresearch] resynced {len(hist)} snapshots to coordinator", flush=True)
+    except (requests.RequestException, json.JSONDecodeError):
+        pass
+
+
 def main():
     RESEARCH_DIR.mkdir(exist_ok=True)
+    resync_coordinator()
     champion = CHAMPION.read_text() if CHAMPION.exists() else ""
     print("[autoresearch] evaluating champion baseline...", flush=True)
     champ_metrics, fails = evaluate(champion)
