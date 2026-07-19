@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prime evaluation capture</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#090b0a;color:#d8e1dc;font:15px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+    header,footer{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#101411;border-color:#263029;color:#809087;font-size:11px}
+    header{border-bottom:1px solid #263029}footer{position:fixed;inset:auto 0 0;border-top:1px solid #263029}
+    header b,.green{color:#66dc91}.terminal{padding:24px 26px 76px}.line{opacity:0;transform:translateY(4px);animation:show .2s forwards}
+    .prompt{color:#66dc91}.command{color:#fff}.muted{color:#758078}.yellow{color:#f0c855}.card{margin:18px 0 20px;padding:16px;border:1px solid #354139;background:#101411}
+    .card h1{margin:0 0 14px;color:#fff;font:700 17px/1.25 system-ui,sans-serif}.status{display:inline-block;margin-left:7px;padding:2px 7px;background:#173c25;color:#77e09b;font-size:10px}
+    dl{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0}dt{color:#7e8b83;font-size:10px;text-transform:uppercase}dd{margin:2px 0 0;color:#fff;font-size:18px;font-weight:700}
+    .url{overflow-wrap:anywhere;color:#91bca0}.cursor{display:inline-block;width:8px;height:16px;margin-left:4px;background:#66dc91;vertical-align:-3px;animation:blink .8s infinite}
+    @keyframes show{to{opacity:1;transform:none}}@keyframes blink{50%{opacity:0}}
+  </style>
+</head>
+<body>
+  <header><span><b>PRIME CLI</b> · authenticated as tarive</span><span>VERIFIERS v1</span></header>
+  <main class="terminal" id="terminal">
+    <div class="line" style="animation-delay:.3s"><span class="prompt">$ </span><span class="command">prime eval get ipjzblojwpcswqvk67l7fczc</span></div>
+    <div class="card line" id="result" style="animation-delay:1.2s"><h1>Loading uploaded evaluation…</h1></div>
+    <div class="line muted" style="animation-delay:2.1s">Inspecting individual rollout samples…</div>
+    <div class="line" style="animation-delay:2.8s"><span class="prompt">$ </span><span class="command">prime eval samples ipjzblojwpcswqvk67l7fczc</span></div>
+    <div class="line green" style="animation-delay:4s">45 samples available · GPU, MacBook, and RAM only</div>
+    <div class="line muted" style="animation-delay:5s">Environment source: tarive/gpu-deal-judge-v1@0.1.1</div>
+    <div class="line url" style="animation-delay:5.8s">app.primeintellect.ai/dashboard/evaluations/ipjzblojwpcswqvk67l7fczc<span class="cursor"></span></div>
+  </main>
+  <footer><span>Actual evaluation evidence</span><span id="timestamp">Prime Environment Hub</span></footer>
+  <script>
+    fetch("/api/rsi-operations").then(r=>r.json()).then(({latest_eval:e})=>{
+      document.querySelector("#result").innerHTML=`<h1>${e.model.split("/").at(-1)} <span class="status">COMPLETED</span></h1>
+        <dl><div><dt>Decision quality</dt><dd>${e.avg_reward.toFixed(3)}</dd></div><div><dt>Rollouts</dt><dd>${e.rollout_count}</dd></div>
+        <div><dt>Valid JSON</dt><dd>${e.avg_metrics.valid_json_rate_pct.toFixed(0)}%</dd></div><div><dt>Errors</dt><dd>${e.error_rate_pct.toFixed(0)}%</dd></div>
+        <div><dt>Evaluation time</dt><dd>${e.eval_seconds.toFixed(1)}s</dd></div><div><dt>Cost</dt><dd>$${e.cost_usd.toFixed(4)}</dd></div></dl>`;
+      document.querySelector("#timestamp").textContent=new Date(e.evaluated_at).toLocaleString();
+    });
+  </script>
+</body>
+</html>

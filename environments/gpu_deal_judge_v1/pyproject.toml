@@ -1,6 +1,6 @@
 [project]
 name = "gpu-deal-judge-v1"
-version = "0.1.0"
+version = "0.1.1"
 description = "PC-purchase decision benchmark for Decision Frontier."
 tags = ["single-turn", "commerce", "gpu", "macbook", "ram", "v1"]
 requires-python = ">=3.11"

@@ -112,11 +112,11 @@
   },
   {
     "id": "TC-11",
-    "name": "Legacy Motherboard for 4th-Gen Intel CPU",
-    "prompt": "Our legacy office file server needs a replacement motherboard that supports an ancient Intel Core 4th-gen processor. Where can I find one?",
-    "expected_platform": "eBay or ServerMonkey",
+    "name": "Legacy MacBook Pro Logic Board",
+    "prompt": "Our legacy 2015 MacBook Pro needs a tested replacement logic board. Where can I find one without paying collector pricing?",
+    "expected_platform": "eBay or iFixit",
     "ground_truth": {
-      "condition": "Legacy / Discontinued",
+      "condition": "Used / Tested",
       "avoid_platforms": ["Best Buy", "Amazon New Product Lines"]
     }
   },

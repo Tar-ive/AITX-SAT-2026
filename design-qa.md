@@ -1,37 +1,55 @@
-# Design QA — Decision Frontier live dashboard
+# Design QA — Methodology RSI loop
 
-- Dashboard source: `/Users/tarive/.codex/generated_images/019f7647-23c5-72a1-98ac-eb539ff12ee4/call_I79O6qYFIXqgmbzYRvDVM0za.png`
-- Improvement-table source: `/var/folders/2v/_k7jy0rs42941z8ym58lymd80000gn/T/TemporaryItems/NSIRD_screencaptureui_MG2Qsg/Screenshot 2026-07-18 at 2.11.46 PM.png`
-- Motion reference: `/Users/tarive/Downloads/Zhengyao_Jiang_-_The_first_experimental_evidence_of_recursive_self-improvement_RSI_ErWfqO.mp4`
-- Implementation: `http://127.0.0.1:8787/`
-- Comparison: `/tmp/decision-frontier-qa/rsi-table-comparison.png`
-- Viewports: 1440 × 1024 desktop; 390 × 844 mobile
+- Source visual truth: `/var/folders/2v/_k7jy0rs42941z8ym58lymd80000gn/T/TemporaryItems/NSIRD_screencaptureui_W0yjhQ/Screenshot 2026-07-18 at 7.27.37 PM.png`
+- Implementation screenshot: `/Users/tarive/aitx_sat_2026/design-qa-methodology-loop.jpg`
+- Side-by-side comparison: `/Users/tarive/aitx_sat_2026/design-qa-methodology-comparison.png`
+- Route: `http://127.0.0.1:8787/#methodology`
+- Viewports: 1280px desktop; 390 × 844 mobile
+- State: loop paused for comparison
 
-## Data and behavior checks
+## Full-view comparison
 
-- Hosted Supabase returned 9 live listings: 3 GPU, 3 MacBook, and 3 RAM.
-- Six eBay sandbox fixtures are excluded from the live API response.
-- GPU and MacBook selection changed the price range, decision, chart, images, and listing URLs.
-- Marketplace links use the stored Supabase URL and open in a separate tab.
-- The recursive table rendered four policy versions and the trend chart rendered at desktop and mobile sizes.
-- Browser console: no current `app.js?v=7` errors.
-- Credentials remain server-side in `scripts/dashboard_api.py`.
+The implementation matches the reference’s black canvas, oversized white heading,
+thin circular track, green accent, centered loop label, and evenly distributed cards.
+Seven cards are intentional because the product flow includes Auto Research. The
+reference’s text-only cards are intentionally replaced by the requested real videos.
 
-## Findings resolved
+## Fidelity surfaces
 
-1. **P1 · Data provenance:** Static marketplace fixtures looked live. Replaced them with read-only hosted Supabase queries and visible collection-method labels.
-2. **P1 · Trust:** eBay sandbox rows could be mistaken for production results. The API now excludes any collector containing `sandbox`.
-3. **P1 · Behavior:** The dashboard and API required two unrelated server commands. The API now also serves the dashboard on port 8787.
-4. **P2 · Fidelity:** The recursive table did not match the supplied scorecard. Added all requested columns, confidence intervals, baseline-relative heat cells, rank movement, and legend.
-5. **P2 · Comprehension:** A table alone did not show recursion over time. Added an accepted-policy staircase with decision quality and forecast regret, following the video’s champion-progression narrative.
-6. **P2 · Honesty:** Screenshot metrics could be read as measured production results. The UI and API label them `illustrative` and explain that Verifiers output must replace them after the first overnight run.
-7. **P2 · Responsiveness:** The eight-column table is intentionally horizontally scrollable on mobile; the document itself remains 390px wide with no page-level overflow.
+- Typography: DM Sans closely matches the reference’s neutral grotesk. The heading is
+  light, tightly tracked, and remains on one desktop line. Every card title is exactly
+  two words.
+- Spacing: the circle, center label, and cards have clear separation on desktop.
+  Mobile has no card overlap, center overlap, clipping, or page-level horizontal
+  overflow.
+- Colors: near-black background, white type, charcoal borders, and restrained green
+  accents match the source palette.
+- Image quality: all seven cards use real local MP4 recordings with matching posters;
+  no placeholder artwork remains.
+- Copy: visible card content is limited to the video and two-word heading as requested.
 
-## Final visual check
+## Interaction checks
 
-- Fonts, light rail, warm paper palette, thin borders, pale-green improvements, pale-red regressions, and yellow champion state match the references.
-- Product imagery comes from live stored listing URLs; Font Awesome supplies interface icons.
-- No custom SVG, CSS illustrations, gradients, fake product art, or unmarked fallback data were introduced.
-- The self-improvement chart uses Chart.js and clearly separates decision quality from USD regret.
+- Pause and resume loop: passed.
+- Zoom a card video and close the dialog: passed.
+- Console errors: none.
+
+## Comparison history
+
+1. P2: the first mobile pass crowded cards into the center. Reduced mobile card and
+   center sizes and adjusted the Three.js orbit scale. Post-fix evidence showed zero
+   overlaps and zero clipping.
+2. P2: the first desktop heading wrapped unlike the reference. Shortened it to
+   “Agents improve themselves.” Post-fix comparison shows one-line display text.
+
+## Focused-region evidence
+
+No separate crop was needed: the 1594px-high side-by-side comparison keeps the heading,
+center label, video imagery, card borders, and two-word titles legible.
+
+## Findings
+
+No actionable P0, P1, or P2 differences remain. The seven-card count and video content
+are intentional product requirements rather than design drift.
 
 **final result: passed**
