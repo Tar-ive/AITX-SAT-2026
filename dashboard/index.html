@@ -6,6 +6,7 @@
   <meta name="description" content="Decision Frontier helps people choose when and where to buy GPUs, RAM, and MacBooks.">
   <meta name="dashboard-api" content="">
   <title>Decision Frontier — Buy at the right price</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
@@ -135,17 +136,17 @@
         <div>
           <p class="eyebrow">Autoresearch · Jul 17 5pm → now</p>
           <h1>Leaderboard</h1>
-          <p>Karpathy-style keep/discard staircase across five objectives. Seeded from measured Verifiers, Prime-RL, and live coordinator promotions.</p>
+          <p>Karpathy-style keep/discard staircase across five objectives, using measured EC2 experiments from the live coordinator.</p>
         </div>
         <span class="edition" id="improvement-evidence">Loading experiment history…</span>
       </div>
 
       <div class="seed-bar" id="seed-bar">
-        <div><small>Reproducible seed</small><strong id="seed-value">—</strong></div>
+        <div><small>Data source</small><strong id="seed-value">—</strong></div>
         <div><small>Experiments</small><strong id="seed-exp-count">—</strong></div>
         <div><small>Kept</small><strong id="seed-kept-count">—</strong></div>
-        <div><small>Anchors</small><strong id="seed-anchors">Verifiers · Prime-RL · live radar</strong></div>
-        <p id="seed-note">Seed = sha256 of measured accuracy/latency/safety anchors.</p>
+        <div><small>Evaluation stack</small><strong id="seed-anchors">Verifiers · Prime-RL · live radar</strong></div>
+        <p id="seed-note">Loading measured experiment history…</p>
       </div>
 
       <div class="karpathy-grid" id="karpathy-grid">
@@ -321,7 +322,7 @@
         <div class="section-title">
           <p class="eyebrow">Autoresearch showcase</p>
           <h2>Staircase · before/after · online-first policy.</h2>
-          <p>Recorded progress from Jul 17 5pm CDT through the live champion. Seed justified by Verifiers baseline, Prime-RL eval, and coordinator promotions.</p>
+          <p>Playwright recording of the live leaderboard and seven-step loop, backed by the EC2 worker and coordinator.</p>
         </div>
         <div class="morning-videos" aria-label="Autoresearch demo videos">
           <article class="method-video-card">
@@ -355,7 +356,7 @@
             <p>Champion lessons drop in-store-only SKUs and recommend a nationwide Newegg bundle.</p>
           </article>
         </div>
-        <p class="method-demo-note"><i class="fa-solid fa-seedling"></i> Plot seed <code id="method-seed">—</code> · see Leaderboard for the five live charts.</p>
+        <p class="method-demo-note"><i class="fa-solid fa-seedling"></i> Data source <code id="method-seed">—</code> · see Leaderboard for the five live charts.</p>
       </article>
 
       <article class="strategy-cycle">

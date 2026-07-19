@@ -329,12 +329,12 @@ function renderExperiments(payload){
   state.experiments=payload;
   const exps=payload.experiments||[];
   const s=payload.summary||{};
-  $("#improvement-evidence").textContent=`${s.experiments||exps.length} experiments · ${s.kept||0} kept · seed ${payload.seed}`;
+  $("#improvement-evidence").textContent=`${s.experiments||exps.length} experiments · ${s.kept||0} kept · ${payload.seed}`;
   $("#seed-value").textContent=String(payload.seed??"—");
   $("#seed-exp-count").textContent=String(s.experiments??exps.length);
   $("#seed-kept-count").textContent=String(s.kept??0);
   const note=payload.seed_justification?.supabase_note||"";
-  $("#seed-note").textContent=note||"Seed derived from measured Verifiers / Prime-RL / live radar anchors.";
+  $("#seed-note").textContent=note||"Measured experiment history from the live EC2 loop.";
   const methodSeed=$("#method-seed");
   if(methodSeed)methodSeed.textContent=String(payload.seed??"—");
 
@@ -366,7 +366,7 @@ async function loadExperiments(){
     const paths=[`data/autoresearch_experiments.json?t=${Date.now()}`,`../data/autoresearch_experiments.json?t=${Date.now()}`];
     let res=null;
     for(const path of paths){res=await fetch(path);if(res.ok)break;}
-    if(!res||!res.ok)throw new Error("static seed missing");
+    if(!res||!res.ok)throw new Error("offline experiment history missing");
     renderExperiments(await res.json());
   }catch(error){
     $("#improvement-evidence").textContent="Experiment history unavailable";
@@ -385,8 +385,10 @@ async function loadImprovement(){
 function renderOperations(payload){
   state.operations=payload;
   const {lessons,latest_eval:latest}=payload;
-  $("#lessons-status").innerHTML=lessons.status==="synced"
+  $("#lessons-status").innerHTML=lessons.status==="synced"&&lessons.lesson_count>0
     ?`<i class="fa-solid fa-circle-check"></i> ${lessons.lesson_count} lessons synced · ${esc(relativeTime(lessons.updated_at))}`
+    :lessons.status==="synced"
+    ?'<i class="fa-solid fa-circle-check"></i> No cloud lesson promotion yet'
     :'<i class="fa-solid fa-cloud-arrow-down"></i> Lessons file awaiting cloud sandbox sync';
   $("#fresh-run-strip").innerHTML=latest?`
     <span><small>Latest measured run</small><strong>${esc(latest.model.split("/").at(-1))}</strong></span>

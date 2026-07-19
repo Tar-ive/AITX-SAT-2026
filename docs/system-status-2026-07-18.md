@@ -1,6 +1,6 @@
 # System status — 2026-07-18
 
-Verified live at 2026-07-19 04:10 UTC (23:10 CDT).
+Verified live at 2026-07-19 04:35 UTC (23:35 CDT).
 
 ## Executive state
 
@@ -9,8 +9,8 @@ Verified live at 2026-07-19 04:10 UTC (23:10 CDT).
 | Vercel UI | Up | `https://decision-frontier.vercel.app` returned 200 |
 | Vercel API | Up | `/api/health` reached hosted Supabase |
 | Supabase | Healthy | Project `qzegmkzyzalmakoqxezc`, `ca-central-1`, `ACTIVE_HEALTHY` |
-| EC2 agent host | Running | `54.162.99.109`, four live containers, 11+ hours uptime |
-| AutoResearch | Running | 37 measured snapshots; latest accuracy 0.5933; one promotion |
+| EC2 agent host | Running | `35.172.137.131`, both EC2 health checks passed |
+| AutoResearch | Running | 41 measured snapshots; challenger 1 of 25 executing |
 | Railway coordinator | Up | `/api/status` and `/api/radar` returned 200 |
 | Discord agents | Up | Brain, Scout, Inspector, and Concierge authenticated |
 | Discord → daily training | Integrated here | Nightly tournament fetches real Discord exchanges and persists episodes |
@@ -25,20 +25,21 @@ Verified live at 2026-07-19 04:10 UTC (23:10 CDT).
   `autoresearch`, and `search-cache`.
 - `autoresearch` uses `restart=unless-stopped`.
 - Host cron runs `scripts/nightly_master_cycle.py` at `05:30 UTC`.
-- AutoResearch had 37 snapshots when checked. The current champion was 0.5933
+- AutoResearch had 41 snapshots when checked. The current champion was 0.5933
   decision accuracy, 100% deal safety.
-- The public EC2 port `8787` timed out externally. The Terraform source contains
-  the required port/NACL rule, but the local Terraform state did not show that
-  rule as applied. Railway remains the public data plane.
-- AWS CLI SSO was expired during this audit. SSH worked for the first live
-  inspection, then became intermittent. Run
-  `aws sso login --profile dev_sso_giftmaxxing` before AWS changes.
+- Both security-group and NACL rules for SSH and the read-only leaderboard are
+  active. `http://35.172.137.131:8787/` and `/radar` returned 200 publicly.
+- AWS SSO is authenticated. The instance was relaunched at 04:11 UTC, which
+  explains the stale prior IP and SSH failure.
+- The merged Hermes workspace requires Git. The old bare-Python container
+  failed once after the code update; Compose now installs Git and owns the
+  durable `autoresearch` service. It restarted cleanly with zero restarts.
 
 ### Railway
 
 - Active coordinator:
   `https://nemoclaw-coordinator-api-production.up.railway.app`
-- Live results at audit time: 37 radar rows, one evaluation row, four episodic
+- Live results at audit time: 41 radar rows, three evaluation rows, four episodic
   rows.
 - The coordinator reports `idle` because `/api/status` describes its legacy
   in-process demo runner. The real AutoResearch worker runs on EC2. `/api/radar`
@@ -76,6 +77,9 @@ neutral. No local migration was used.
 - The merged Cursor leaderboard adds Karpathy-style keep/discard charts.
 - The API now prefers Railway's live radar history and falls back to committed
   evidence only when the coordinator is unavailable.
+- Playwright verified both Leaderboard and Methodology with live data, autoplay,
+  zoom/fullscreen controls, and no application JavaScript errors. The new
+  21.5-second recording is `dashboard/media/rsi-05-autoresearch-progress.mp4`.
 - `/api/radar`, `/api/autoresearch-status`, `/api/evaluations`, and
   `/api/episodic-memory` are read-only Vercel proxies to Railway.
 
@@ -132,8 +136,7 @@ curl -fsS 'https://decision-frontier.vercel.app/api/marketplace?category=gpu'
 # AutoResearch public data plane
 curl -fsS https://nemoclaw-coordinator-api-production.up.railway.app/api/radar
 
-# AWS control-plane access
-aws sso login --profile dev_sso_giftmaxxing
+# AWS control-plane access (login only when the SSO session expires)
 aws ec2 describe-instances --profile dev_sso_giftmaxxing \
   --filters Name=tag:Name,Values=aitx-agent-host
 ```
