@@ -114,8 +114,8 @@ def select(results, champ_acc):
 def discord_post(token, content):
     chans = requests.get(f"https://discord.com/api/v10/guilds/{GUILD}/channels",
                          headers={"Authorization": f"Bot {token}"}, timeout=15).json()
-    target = next((c["id"] for c in chans if c.get("name") == "daily"),
-                  next((c["id"] for c in chans if c.get("name") == "gpu-desk"), None))
+    target = next((c["id"] for c in chans if c.get("name") == "eval"),
+                  next((c["id"] for c in chans if c.get("name") == "daily"), None))
     if target:
         requests.post(f"https://discord.com/api/v10/channels/{target}/messages",
                       headers={"Authorization": f"Bot {token}"},

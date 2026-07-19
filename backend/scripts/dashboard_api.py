@@ -296,19 +296,79 @@ def measured_radar():
     return measured
 
 
-def _experiment_payload(rows, source):
+def episodic_evidence(limit=16):
+    """Recent Discord/user evidence persisted in hosted Supabase."""
+    with database() as connection, connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(
+            """
+            select episode_id, channel, task_type, request, outcome, feedback,
+                   quality, lesson, inserted_at
+            from public.episodes
+            order by inserted_at desc
+            limit %s
+            """,
+            (limit,),
+        )
+        return [
+            {key: json_value(value) for key, value in row.items()}
+            for row in cursor.fetchall()
+        ]
+
+
+def _feedback_summary(episode):
+    feedback = episode.get("feedback") or {}
+    if isinstance(feedback, dict):
+        reactions = feedback.get("reactions") or []
+        if reactions:
+            return ", ".join(
+                f"{row.get('emoji', 'reaction')} ×{row.get('count', 1)}"
+                for row in reactions[:3]
+                if isinstance(row, dict)
+            )
+    return ""
+
+
+def _experiment_payload(rows, source, episodes=None):
     clean = [row for row in rows if isinstance(row, dict) and isinstance(row.get("accuracy"), (int, float))]
+    episodes = list(reversed(episodes or []))
+    episode_offset = max(0, len(clean) - len(episodes))
     experiments = []
     for index, row in enumerate(clean, 1):
         safety = float(row.get("deal_safety", 100))
         stability = float(row.get("stability", 0) or 0)
+        episode = episodes[index - episode_offset - 1] if index > episode_offset else None
+        lesson = (episode or {}).get("lesson") or ""
+        memory_lines = len([line for line in lesson.splitlines() if line.strip()])
+        description = row.get("hypothesis") or row.get("version", f"experiment {index}")
+        preference = ""
+        if episode:
+            preference = _feedback_summary(episode) or episode.get("request") or episode.get("outcome") or ""
         experiments.append({
             **row,
             "experiment": index,
             "kept": bool(row.get("accepted") or row.get("role") == "champion"),
             "price_regression": round(max(0, 100 - safety), 3),
-            "agent_regression": round(max(0, -stability), 4),
-            "description": row.get("hypothesis") or row.get("version", f"experiment {index}"),
+            "episodic_diff_lines": memory_lines,
+            "knowledge_regression": round(max(0, -stability), 4),
+            "description": description,
+            "evidence": {
+                "source": "Supabase episodic trial" if episode else "Online retrieval research",
+                "source_detail": (
+                    f"{episode.get('channel') or '#daily'} · {episode.get('quality') or 'ungraded'}"
+                    if episode else description
+                ),
+                "improvement": description,
+                "preference": preference[:220] or "No explicit preference attached to this trial.",
+                "memory_change": (
+                    f"{memory_lines} episodic memory line{'s' if memory_lines != 1 else ''} proposed"
+                    if episode else "No episodic memory patch attached"
+                ),
+                "tested_by": (
+                    f"Verifiers golden set · {int(row.get('n') or 0)} judged rollouts · "
+                    f"{safety:.1f}% deal safety"
+                ),
+                "episode_id": (episode or {}).get("episode_id"),
+            },
         })
     if not experiments:
         raise ValueError("no measured autoresearch rows")
@@ -328,8 +388,10 @@ def _experiment_payload(rows, source):
             "retrieval_now": current.get("retrieval_s", 0),
             "price_regression_start": first["price_regression"],
             "price_regression_now": current["price_regression"],
-            "agent_regression_start": first["agent_regression"],
-            "agent_regression_now": current["agent_regression"],
+            "episodic_diff_start": first["episodic_diff_lines"],
+            "episodic_diff_now": current["episodic_diff_lines"],
+            "knowledge_regression_start": first["knowledge_regression"],
+            "knowledge_regression_now": current["knowledge_regression"],
         },
         "experiments": experiments,
         "seed_justification": {"supabase_note": f"Live measured history from {source}"},
@@ -339,7 +401,15 @@ def _experiment_payload(rows, source):
 def autoresearch_experiments():
     """Prefer the live coordinator; retain committed evidence as an offline fallback."""
     try:
-        return _experiment_payload(measured_radar(), "live EC2 loop via Railway")
+        episodes = episodic_evidence()
+    except Exception:
+        episodes = []
+    try:
+        return _experiment_payload(
+            measured_radar(),
+            "live EC2 loop via Railway + Supabase evidence",
+            episodes,
+        )
     except Exception:
         pass
     if AUTORESEARCH_EXPERIMENTS.exists():
@@ -348,6 +418,7 @@ def autoresearch_experiments():
         return _experiment_payload(
             json.loads(RADAR_SNAPSHOTS.read_text()),
             "committed radar snapshot",
+            episodes,
         )
     raise FileNotFoundError("no autoresearch experiment history")
 
@@ -477,6 +548,17 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(rsi_idea_memory())
             except Exception as error:
                 self.send_json({"status": "unavailable", "error": str(error), "ideas": []}, 503)
+            return
+
+        if parsed.path == "/api/research-evidence":
+            try:
+                self.send_json({
+                    "status": "live",
+                    "database": "hosted Supabase",
+                    "episodes": episodic_evidence(),
+                })
+            except Exception as error:
+                self.send_json({"status": "unavailable", "error": str(error), "episodes": []}, 503)
             return
 
         if parsed.path == "/api/discord-rsi":
