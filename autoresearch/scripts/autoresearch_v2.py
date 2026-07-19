@@ -130,17 +130,38 @@ def score_one(text, truth):
 
 
 def evaluate(lessons, cases):
-    """Evaluate a policy on a FIXED set of (case, rollout-seed) pairs so that
-    champion and candidate see identical questions — paired, noise-cancelling."""
+    """Evaluate a policy on a FIXED set of cases (paired, noise-cancelling).
+    Also times each rollout so seconds_per_answer is measured, not guessed."""
     system = BASE_SYSTEM + ("\n\nLessons:\n" + lessons if lessons else "")
-    scores = []
+    scores, secs = [], []
     for c in cases:
         truth = {"expected_platform": c.get("expected_platform", ""), **c.get("ground_truth", {})}
         try:
-            scores.append(score_one(judge(system, c["prompt"]), truth))
+            t0 = time.time()
+            out = judge(system, c["prompt"])
+            secs.append(time.time() - t0)
+            scores.append(score_one(out, truth))
         except RuntimeError:
             pass
-    return (sum(scores) / len(scores)) if scores else 0.0, len(scores)
+    mean = (sum(scores) / len(scores)) if scores else 0.0
+    sec = round(sum(secs) / len(secs), 2) if secs else 0.0
+    return mean, len(scores), sec
+
+
+def injection_risk():
+    """Run the combined defense-in-depth injection eval; return the % risk.
+    Expensive, so called only on promotion. Falls back to None on error."""
+    script = REPO / "autoresearch" / "scripts" / "injection_combined_eval.py"
+    if not (script.exists() and os.environ.get("HIDDENLAYER_CLIENT_ID")):
+        return None
+    try:
+        r = subprocess.run(["python3", str(script)], capture_output=True, text=True, timeout=240)
+        for line in r.stdout.splitlines():
+            if line.startswith("{"):
+                return json.loads(line).get("risk_pct")
+    except (subprocess.SubprocessError, json.JSONDecodeError):
+        pass
+    return None
 
 
 def seed_hypotheses():
@@ -164,19 +185,24 @@ def mutate(champion, seeds, cycle):
     return re.sub(r"<think>.*?</think>", "", t, flags=re.DOTALL).strip()
 
 
-def record(exp_id, action, hyp, dq, accepted, source="autoresearch-v2"):
+def record(exp_id, action, hyp, dq, sec, inj, mem, reg, accepted, source="autoresearch-v2"):
+    """Record all FIVE metrics: decision_quality, seconds_per_answer,
+    prompt_injection_risk, memory_diff_lines, knowledge_regression."""
     def lit(s):
         return "$v$" + str(s).replace("$", "") + "$v$"
+    injv = "null" if inj is None else inj
     psql(f"insert into public.harness_experiments (experiment_id,action,hypothesis,"
-         f"decision_quality,seconds_per_answer,forbidden_platform_risk,memory_diff_lines,"
-         f"knowledge_regression,accepted,source_box) values ({lit(exp_id)},{lit(action)},{lit(hyp)},"
-         f"{dq},0,0,0,0,{str(accepted).lower()},{lit(source)}) on conflict (experiment_id) do nothing;",
+         f"decision_quality,seconds_per_answer,forbidden_platform_risk,prompt_injection_risk,"
+         f"memory_diff_lines,knowledge_regression,accepted,source_box) values "
+         f"({lit(exp_id)},{lit(action)},{lit(hyp)},{dq},{sec},{injv if injv!='null' else 0},{injv},"
+         f"{mem},{reg},{str(accepted).lower()},{lit(source)}) on conflict (experiment_id) do nothing;",
          out=False)
     if COORD:
         try:
             requests.post(f"{COORD}/api/radar", timeout=12, json={
                 "source": "autoresearch-v2", "version": exp_id, "accuracy": dq,
-                "role": "champion" if accepted else "candidate", "retrieval_s": 6, "deal_safety": 100})
+                "role": "champion" if accepted else "candidate", "retrieval_s": sec,
+                "deal_safety": 100 - (injv if injv != "null" else 0), "memory_diff_lines": mem})
         except requests.RequestException:
             pass
 
@@ -194,23 +220,36 @@ def main():
         cycle += 1
         cand = mutate(champion, seeds, cycle)
         # PAIRED eval: same cases, both policies, this round — noise cancels.
-        cand_dq, nc = evaluate(cand, GOLDEN)
-        champ_dq, nch = evaluate(champion, GOLDEN)
+        cand_dq, nc, cand_sec = evaluate(cand, GOLDEN)
+        champ_dq, nch, _ = evaluate(champion, GOLDEN)
         margin = round(cand_dq - champ_dq, 4)
         accepted = margin >= 0.01 and nc >= 0.8 * len(GOLDEN)  # paired, real margin
         exp_id = f"v2-c{cycle}-{int(cand_dq*1000)}"
-        record(exp_id, "mutate_policy", (cand.splitlines() or ["(empty)"])[0][:120], cand_dq, accepted)
-        print(f"[v2] cycle {cycle}: cand={cand_dq:.3f} champ={champ_dq:.3f} margin={margin:+.3f} "
-              f"-> {'PROMOTE' if accepted else 'reject'}", flush=True)
+        # 4 of 5 metrics every cycle; the 5th (injection) is expensive so it
+        # runs only on promotion, when a real change is worth the full scan.
+        inj = mem = None
+        reg = round(min(0.0, margin), 4) if margin < 0 else 0.0  # regression only if worse
         if accepted:
             champion = cand
             champ_file.write_text(champion)
-            # push the promoted lessons into agent SOUL (hash-merge) if reconciler present
             rec = REPO / "autoresearch" / "scripts" / "promote_to_soul.py"
             if rec.exists():
-                subprocess.run(["python3", str(rec), "--agent", "hermes", "--lessons",
-                                str(champ_file), "--experiment", exp_id], capture_output=True)
-            print(f"[v2] cycle {cycle}: PROMOTED (+{margin:.3f}) — champion updated, SOUL merged", flush=True)
+                p = subprocess.run(["python3", str(rec), "--agent", "hermes", "--lessons",
+                                    str(champ_file), "--experiment", exp_id], capture_output=True, text=True)
+                m = re.search(r"merged (\d+) new", p.stdout)
+                mem = int(m.group(1)) if m else 0
+            inj = injection_risk()  # full defense-in-depth scan on the new champion
+        record(exp_id, "mutate_policy", (cand.splitlines() or ["(empty)"])[0][:120],
+               cand_dq, cand_sec, inj, mem or 0, reg, accepted)
+        print(f"[v2] cycle {cycle}: cand={cand_dq:.3f} champ={champ_dq:.3f} margin={margin:+.3f} "
+              f"{cand_sec:.1f}s/ans -> {'PROMOTE' if accepted else 'reject'}", flush=True)
+        if accepted:
+            print(f"[v2] cycle {cycle}: PROMOTED (+{margin:.3f}) — SOUL +{mem} lines, "
+                  f"injection_risk={inj}% — posting #eval", flush=True)
+            digest = REPO / "autoresearch" / "scripts" / "post_eval_digest.py"
+            if digest.exists():
+                subprocess.run(["python3", str(digest)], capture_output=True,
+                               env={**os.environ, "REPO_DIR": str(REPO)})
             seeds = seed_hypotheses()
         time.sleep(CYCLE_SECS)
 
