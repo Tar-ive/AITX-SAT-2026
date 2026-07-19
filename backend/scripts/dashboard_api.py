@@ -28,6 +28,10 @@ LATEST_RSI_EVAL_JSON = Path(os.getenv("LATEST_RSI_EVAL_JSON", ROOT / "autoresear
 LESSONS_FILE = Path(os.getenv("RSI_LESSONS_FILE", ROOT / "autoresearch/data/lessons.md"))
 AUTORESEARCH_EXPERIMENTS = Path(os.getenv("AUTORESEARCH_EXPERIMENTS", ROOT / "autoresearch/data/autoresearch_experiments.json"))
 RADAR_SNAPSHOTS = Path(os.getenv("RADAR_SNAPSHOTS", ROOT / "autoresearch/data/radar_snapshots.json"))
+COORDINATOR_URL = os.getenv(
+    "COORDINATOR_URL",
+    "https://nemoclaw-coordinator-api-production.up.railway.app",
+).rstrip("/")
 VERIFIERS_EVAL_DIR = ROOT / "autoresearch/environments/gpu_deal_judge/outputs/evals"
 DISCORD_RSI_CHANNEL_ID = os.getenv("DISCORD_RSI_CHANNEL_ID", "1527922756480401478")
 CATEGORIES = {
@@ -275,32 +279,91 @@ def discord_rsi_messages():
 
 
 
+def coordinator_json(path):
+    response = requests.get(f"{COORDINATOR_URL}{path}", timeout=8)
+    response.raise_for_status()
+    return response.json()
+
+
+def measured_radar():
+    rows = coordinator_json("/api/radar")
+    measured = [
+        row for row in rows
+        if isinstance(row, dict) and row.get("source") == "autoresearch-loop"
+    ]
+    if not measured:
+        raise ValueError("coordinator has no live EC2 worker rows")
+    return measured
+
+
+def _experiment_payload(rows, source):
+    clean = [row for row in rows if isinstance(row, dict) and isinstance(row.get("accuracy"), (int, float))]
+    experiments = []
+    for index, row in enumerate(clean, 1):
+        safety = float(row.get("deal_safety", 100))
+        stability = float(row.get("stability", 0) or 0)
+        experiments.append({
+            **row,
+            "experiment": index,
+            "kept": bool(row.get("accepted") or row.get("role") == "champion"),
+            "price_regression": round(max(0, 100 - safety), 3),
+            "agent_regression": round(max(0, -stability), 4),
+            "description": row.get("hypothesis") or row.get("version", f"experiment {index}"),
+        })
+    if not experiments:
+        raise ValueError("no measured autoresearch rows")
+    kept = [row for row in experiments if row["kept"]]
+    current = kept[-1] if kept else experiments[0]
+    first = experiments[0]
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source": source,
+        "seed": "live",
+        "summary": {
+            "experiments": len(experiments),
+            "kept": len(kept),
+            "accuracy_start": first["accuracy"],
+            "accuracy_now": current["accuracy"],
+            "retrieval_start": first.get("retrieval_s", 0),
+            "retrieval_now": current.get("retrieval_s", 0),
+            "price_regression_start": first["price_regression"],
+            "price_regression_now": current["price_regression"],
+            "agent_regression_start": first["agent_regression"],
+            "agent_regression_now": current["agent_regression"],
+        },
+        "experiments": experiments,
+        "seed_justification": {"supabase_note": f"Live measured history from {source}"},
+    }
+
+
 def autoresearch_experiments():
-    """Karpathy-style experiment history for the leaderboard charts."""
+    """Prefer the live coordinator; retain committed evidence as an offline fallback."""
+    try:
+        return _experiment_payload(measured_radar(), "live EC2 loop via Railway")
+    except Exception:
+        pass
     if AUTORESEARCH_EXPERIMENTS.exists():
         return json.loads(AUTORESEARCH_EXPERIMENTS.read_text())
-    # Fall back to radar snapshots if the seed file is missing
     if RADAR_SNAPSHOTS.exists():
-        rows = json.loads(RADAR_SNAPSHOTS.read_text())
-        return {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "seed": None,
-            "summary": {"experiments": len(rows), "kept": sum(1 for r in rows if r.get("accepted") or r.get("kept"))},
-            "experiments": rows,
-            "seed_justification": {"supabase_note": "Loaded from radar_snapshots.json"},
-        }
+        return _experiment_payload(
+            json.loads(RADAR_SNAPSHOTS.read_text()),
+            "committed radar snapshot",
+        )
     raise FileNotFoundError("no autoresearch experiment history")
 
 
 def try_supabase_rsi_runs():
     """Best-effort read of public.rsi_runs when DB credentials exist."""
     try:
-        with database() as connection, connection.cursor() as cursor:
+        with database() as connection, connection.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
                 "select run_id, version, source, decision_quality, n_valid, n_total, "
                 "decision, evaluated_at from public.rsi_runs order by evaluated_at asc"
             )
-            rows = cursor.fetchall()
+            rows = [
+                {key: json_value(value) for key, value in row.items()}
+                for row in cursor.fetchall()
+            ]
         return {"status": "ok", "count": len(rows), "runs": rows}
     except Exception as error:
         # Surface measured CSV anchors so the UI can still justify the seed.

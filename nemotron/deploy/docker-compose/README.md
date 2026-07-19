@@ -7,13 +7,17 @@ of local vLLM, **Discord** instead of Telegram, no database tier.
 
 ## What it deploys
 
-One `workspace` container (host network, Docker socket mounted) that:
+The `workspace` container (host network, Docker socket mounted):
 1. installs NemoClaw non-interactively,
 2. onboards the `openclaw` sandbox with the **scout / inspector / concierge**
    sub-agent team from [`config/agents.yaml`](../../config/agents.yaml),
 3. injects the Discord team protocol from
    [`identity/AGENTS.team.md`](../../identity/AGENTS.team.md),
 4. tails the sandbox logs.
+
+The `autoresearch` container runs the measured policy-improvement loop. Its
+image installs `git` because each experiment is kept or discarded in an
+isolated Git workspace.
 
 The agent itself still runs in its own OpenShell sandbox container managed via
 the host Docker daemon — same isolation as a manual install.

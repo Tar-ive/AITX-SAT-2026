@@ -23,7 +23,7 @@ h1 { font-size:1.25rem; margin:.2rem 0 .1rem; } .sub { color:var(--muted); font-
 </style>
 <span class="eyebrow">AITX SAT 2026 · autoresearch (karpathy-pattern)</span>
 <h1>Policy Autoresearch — before vs. now</h1>
-<p class="sub">Four objectives: accuracy ↑ · retrieval speed ↑ (lower seconds) · deal safety ↑ (no forbidden-platform picks) · stability ↑ (no regression). Auto-refreshes every 10 s from <code>/radar</code> (EC2) or <code>data/radar_snapshots.json</code>. Full five-chart view: <a href="index.html#leaderboard">Decision Frontier</a>.</p>
+<p class="sub">Four objectives: accuracy ↑ · retrieval speed ↑ (lower seconds) · deal safety ↑ · stability ↑. Auto-refreshes every 10 seconds from the running EC2 loop through Railway.</p>
 <div class="grid">
   <div class="card"><h2>Baseline (loop start)</h2><canvas id="before" width="340" height="300"></canvas></div>
   <div class="card"><h2>Current champion</h2><canvas id="after" width="340" height="300"></canvas></div>
@@ -83,14 +83,9 @@ function trend(cv,hist){
   // x label
   c.fillStyle=css("--muted");c.textAlign="center";c.fillText("cycles over time →",W/2,H-3);
 }
-const onRailway=location.hostname.endsWith("railway.app");
 async function refresh(){
   let hist=[];
-  // Served from the EC2 host (reliable, always fresh): use /radar.
-  // On Railway: /api/radar. Local file open: the committed snapshot file.
-  const sources = onRailway
-    ? [location.origin+"/api/radar", "../data/radar_snapshots.json"]
-    : ["/radar", location.origin+"/radar", "../data/radar_snapshots.json"];
+  const sources=["/api/radar","/radar","../data/radar_snapshots.json"];
   for(const url of sources){
     try{ const r=await fetch(url+(url.includes("?")?"":"?t="+Date.now())); if(r.ok){ hist=await r.json(); if(hist.length)break; } }catch(e){}
   }

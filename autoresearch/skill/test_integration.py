@@ -25,16 +25,16 @@ TEMPLATES_DIR = BASE_DIR / "templates"
 
 class AutoresearchTestBase(unittest.TestCase):
     """Creates a temporary run directory for each test."""
-    
+
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="autoresearch_test_")
         self.run_dir = os.path.join(self.tmp, "research")
         self.ws_dir = os.path.join(self.run_dir, "workspace")
         os.makedirs(self.run_dir)
-    
+
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
-    
+
     def run_helper(self, script, *args):
         """Run a helper script and return parsed JSON output."""
         cmd = ["python3", str(SCRIPTS_DIR / f"{script}.py")] + [str(a) for a in args]
@@ -46,7 +46,7 @@ class AutoresearchTestBase(unittest.TestCase):
         if first == -1 or last == -1:
             return {"_raw": out}
         return json.loads(out[first:last+1])
-    
+
     def workspace_init(self):
         """Initialize the git workspace and return True."""
         os.makedirs(self.ws_dir, exist_ok=True)
@@ -65,35 +65,35 @@ class AutoresearchTestBase(unittest.TestCase):
 
 class TestState(AutoresearchTestBase):
     """Test state.py operations."""
-    
+
     def test_init_creates_files(self):
         result = self.run_helper("state", "init", self.run_dir, "Test goal", "test", "scope", "quick", "5")
         self.assertEqual(result["status"], "initialized")
         for fname in ["config.json", "status.json", "control.json", "plan.json"]:
             self.assertTrue(os.path.exists(os.path.join(self.run_dir, fname)), f"{fname} not created")
         self.assertTrue(os.path.exists(os.path.join(self.run_dir, "results.log")), "results.log not created")
-    
+
     def test_status_readable(self):
         self.run_helper("state", "init", self.run_dir, "Test", "test", "scope", "quick", "3")
         result = self.run_helper("state", "status", self.run_dir)
         self.assertIn("phase", result)
         self.assertEqual(result["phase"], "planning")
         self.assertEqual(result["experiments_total"], 0)
-    
+
     def test_update_status(self):
         self.run_helper("state", "init", self.run_dir, "Test", "test", "scope", "quick", "5")
         result = self.run_helper("state", "update-status", self.run_dir, "executing", "--experiments-done", "3", "--merged", "2")
         self.assertEqual(result["phase"], "executing")
         self.assertEqual(result["experiments_done"], 3)
         self.assertEqual(result["experiments_merged"], 2)
-    
+
     def test_control_write_and_read(self):
         self.run_helper("state", "init", self.run_dir, "Test", "test", "scope", "quick", "3")
         self.run_helper("state", "control", self.run_dir, "--action", "pause", "--addendum", "testing")
         result = self.run_helper("state", "read-control", self.run_dir)
         self.assertEqual(result["action"], "pause")
         self.assertIn("addendum", result)
-    
+
     def test_checkpoint(self):
         self.run_helper("state", "init", self.run_dir, "Test", "test", "scope", "quick", "3")
         result = self.run_helper("state", "checkpoint", self.run_dir, "5", "6")
@@ -101,13 +101,13 @@ class TestState(AutoresearchTestBase):
         self.assertEqual(result["next"], 6)
         read = self.run_helper("state", "read-checkpoint", self.run_dir)
         self.assertEqual(read["last_completed"], 5)
-    
+
     def test_budget_not_exceeded(self):
         self.run_helper("state", "init", self.run_dir, "Test", "test", "scope", "quick", "10")
         result = self.run_helper("state", "check-budget", self.run_dir, "--tokens", "100000")
         self.assertFalse(result["exceeded"])
         self.assertEqual(result["violations"], [])
-    
+
     def test_budget_time_exceeded(self):
         # Manipulate config to have a 1-minute max duration set in the past
         self.run_helper("state", "init", self.run_dir, "Test", "test", "scope", "quick", "3")
@@ -120,24 +120,24 @@ class TestState(AutoresearchTestBase):
         config["created"] = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
         with open(config_path, "w") as f:
             json.dump(config, f)
-        
+
         result = self.run_helper("state", "check-budget", self.run_dir, "--tokens", "100000")
         self.assertTrue(result["exceeded"])
         self.assertIn("time_exceeded", result["violations"][0])
-    
+
     def test_budget_hard_cap_exceeded(self):
         self.run_helper("state", "init", self.run_dir, "Test", "test", "scope", "quick", "3")
         # Set experiments_done to exceed hard cap
         status_path = os.path.join(self.run_dir, "status.json")
         self.run_helper("state", "update-status", self.run_dir, "executing", "--experiments-done", "10")
-        
+
         result = self.run_helper("state", "check-budget", self.run_dir, "--tokens", "100000")
         self.assertTrue(result["exceeded"])
 
 
 class TestPlan(AutoresearchTestBase):
     """Test plan.py operations."""
-    
+
     def test_write_and_read(self):
         experiments = json.dumps([
             {"id": 1, "type": "investigate", "hypothesis": "test1", "target_section": "Section1"},
@@ -146,24 +146,24 @@ class TestPlan(AutoresearchTestBase):
         result = self.run_helper("plan", "write", self.run_dir, experiments)
         self.assertEqual(result["status"], "plan_written")
         self.assertEqual(result["count"], 2)
-        
+
         read = self.run_helper("plan", "read", self.run_dir)
         self.assertEqual(len(read["experiments"]), 2)
-    
+
     def test_next_pending(self):
         exps = json.dumps([{"id":1,"type":"investigate","hypothesis":"h1","target_section":"s1"}])
         self.run_helper("plan", "write", self.run_dir, exps)
         result = self.run_helper("plan", "next-pending", self.run_dir)
         self.assertEqual(result["id"], 1)
         self.assertEqual(result["status"], "pending")
-    
+
     def test_update_experiment(self):
         exps = json.dumps([{"id":1,"type":"investigate","hypothesis":"h1","target_section":"s1"}])
         self.run_helper("plan", "write", self.run_dir, exps)
         self.run_helper("plan", "update-experiment", self.run_dir, 1, "merged", "--reason", "tested")
         result = self.run_helper("plan", "next-pending", self.run_dir)
         self.assertEqual(result["status"], "all_done")
-    
+
     def test_add_experiment(self):
         exps = json.dumps([{"id":1,"type":"investigate","hypothesis":"h1","target_section":"s1"}])
         self.run_helper("plan", "write", self.run_dir, exps)
@@ -171,7 +171,7 @@ class TestPlan(AutoresearchTestBase):
         read = self.run_helper("plan", "read", self.run_dir)
         self.assertEqual(len(read["experiments"]), 2)
         self.assertEqual(read["experiments"][1]["type"], "deepen")
-    
+
     def test_summary(self):
         exps = json.dumps([
             {"id":1,"type":"investigate","hypothesis":"h1","target_section":"s1","status":"merged"},
@@ -187,33 +187,33 @@ class TestPlan(AutoresearchTestBase):
 
 class TestEvaluate(AutoresearchTestBase):
     """Test evaluate.py scoring and result tracking."""
-    
+
     def test_knowledge_scoring_merge(self):
         result = self.run_helper("evaluate", "score", "4", "5", "4", "4", "4")
         self.assertGreaterEqual(result["scores"]["total"], 13)
         self.assertEqual(result["decision"], "MERGE")
-    
+
     def test_knowledge_scoring_revert_low_total(self):
         result = self.run_helper("evaluate", "score", "2", "2", "2", "2", "2")
         self.assertEqual(result["decision"], "REVERT")
-    
+
     def test_knowledge_scoring_revert_no_evidence(self):
         result = self.run_helper("evaluate", "score", "1", "5", "5", "5", "5")
         self.assertEqual(result["decision"], "REVERT")  # Evidence=1 -> auto reject
-    
+
     def test_knowledge_scoring_revert_no_improvement(self):
         result = self.run_helper("evaluate", "score", "4", "5", "4", "5", "1")
         self.assertEqual(result["decision"], "REVERT")  # Net improvement=1
-    
+
     def test_borderline_reject_weak_evidence(self):
         result = self.run_helper("evaluate", "score", "2", "4", "4", "2", "4")
         self.assertEqual(result["decision"], "REVERT")  # Total 16 but weak evidence/relevance
-    
+
     def test_log_and_read_results(self):
         self.run_helper("evaluate", "log-result", self.run_dir, 1, "Test result", "investigate", "Section1", "MERGE", "Good findings")
         result = self.run_helper("evaluate", "read-results", self.run_dir)
         self.assertIn("Experiment 1", result.get("_raw", ""))
-    
+
     def test_stats_after_logging(self):
         self.run_helper("evaluate", "log-result", self.run_dir, 1, "merged", "investigate", "S1", "MERGE", "good")
         self.run_helper("evaluate", "log-result", self.run_dir, 2, "reverted", "investigate", "S2", "REVERT", "bad")
@@ -221,11 +221,11 @@ class TestEvaluate(AutoresearchTestBase):
         self.assertEqual(stats["merged"], 1)
         self.assertEqual(stats["reverted"], 1)
         self.assertEqual(stats["merge_rate"], "50%")
-    
+
     def test_ml_scoring_improve(self):
         result = self.run_helper("evaluate", "score", "4", "5", "4", "4", "5")
         self.assertEqual(result["decision"], "MERGE")
-    
+
     def test_ml_scoring_worse(self):
         result = self.run_helper("evaluate", "score", "2", "1", "2", "2", "1")
         self.assertLess(result["scores"]["total"], 13)
@@ -242,60 +242,60 @@ class TestEvaluate(AutoresearchTestBase):
 
 class TestWorkspace(AutoresearchTestBase):
     """Test workspace.py git operations."""
-    
+
     def test_init_creates_git_repo(self):
         self.workspace_init()
         self.assertTrue(os.path.exists(os.path.join(self.ws_dir, ".git")))
-    
+
     def test_branch_and_merge(self):
         self.workspace_init()
         # Initial commit
         with open(os.path.join(self.ws_dir, "research.md"), "w") as f:
             f.write("# Research\n\n## Section 1\n\n")
         subprocess.run("git add -A && git commit -m 'init'", shell=True, capture_output=True, cwd=self.ws_dir)
-        
+
         # Branch
         result = self.run_helper("workspace", "branch", self.ws_dir, 1, "test-branch")
         self.assertIn("commands", result)
         for cmd in result["commands"]:
             subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.ws_dir)
-        
+
         # Verify on new branch
         r = subprocess.run("git branch --show-current", shell=True, capture_output=True, text=True, cwd=self.ws_dir)
         self.assertIn("exp_1", r.stdout.strip())
-        
+
         # Merge
         merge_result = self.run_helper("workspace", "merge", self.ws_dir, 1, "test-branch", "exp 1: test")
         self.assertIn("commands", merge_result)
         for cmd in merge_result["commands"]:
             subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.ws_dir)
-        
+
         # Back on main
         r = subprocess.run("git branch --show-current", shell=True, capture_output=True, text=True, cwd=self.ws_dir)
         self.assertEqual(r.stdout.strip(), "main")
-    
+
     def test_revert_deletes_branch(self):
         self.workspace_init()
         with open(os.path.join(self.ws_dir, "research.md"), "w") as f:
             f.write("# Research\n")
         subprocess.run("git add -A && git commit -m 'init'", shell=True, capture_output=True, cwd=self.ws_dir)
-        
+
         self.run_helper("workspace", "branch", self.ws_dir, 1, "bad-exp")
         # Execute branch commands
         result = self.run_helper("workspace", "branch", self.ws_dir, 1, "bad-exp")
         for cmd in result["commands"]:
             subprocess.run(cmd, shell=True, capture_output=True, cwd=self.ws_dir)
-        
+
         # Revert
         revert_result = self.run_helper("workspace", "revert", self.ws_dir, 1, "bad-exp")
         for cmd in revert_result["commands"]:
             subprocess.run(cmd, shell=True, capture_output=True, cwd=self.ws_dir)
-        
+
         # Branch should be deleted
         r = subprocess.run("git branch", shell=True, capture_output=True, text=True, cwd=self.ws_dir)
         branches = r.stdout.strip().split("\n")
         self.assertNotIn("exp_1_bad_exp", [b.strip() for b in branches])
-    
+
     def test_branch_name_sanitization(self):
         result = self.run_helper("workspace", "branch-name", 1, "Some Complex/Topic Here!")
         self.assertTrue(result["_raw"].startswith("exp_1_"))
@@ -305,7 +305,7 @@ class TestWorkspace(AutoresearchTestBase):
 
 class TestReport(AutoresearchTestBase):
     """Test report.py generation."""
-    
+
     def setUp(self):
         super().setUp()
         # Create a minimal state for report generation
@@ -315,7 +315,7 @@ class TestReport(AutoresearchTestBase):
         ]))
         # Log some results
         self.run_helper("evaluate", "log-result", self.run_dir, 1, "Merged exp", "investigate", "s1", "MERGE", "good")
-    
+
     def test_generate_report(self):
         result = self.run_helper("report", "generate", self.run_dir)
         self.assertEqual(result["status"], "generated")
@@ -324,7 +324,7 @@ class TestReport(AutoresearchTestBase):
         content = report_path.read_text()
         self.assertIn("Test Report", content)
         self.assertIn("Merged Experiments", content)
-    
+
     def test_summary(self):
         result = self.run_helper("report", "summary", self.run_dir)
         self.assertIn("summary", result)
@@ -390,29 +390,29 @@ class TestRegistry(AutoresearchTestBase):
 
 class TestTemplates(unittest.TestCase):
     """Test that templates reference correct script names and contain all phases."""
-    
+
     def test_cron_prompt_references_all_scripts(self):
         template_path = TEMPLATES_DIR / "cron_prompt.md"
         self.assertTrue(template_path.exists(), "cron_prompt.md not found")
         content = open(template_path).read()
         for script in ["state.py", "plan.py", "evaluate.py", "workspace.py", "report.py"]:
             self.assertIn(script, content, f"cron_prompt.md missing reference to {script}")
-    
+
     def test_cron_prompt_has_all_phases(self):
         content = open(TEMPLATES_DIR / "cron_prompt.md").read()
         for phase in ["PHASE 1", "PHASE 2", "PHASE 3", "PHASE 4"]:
             self.assertIn(phase, content, f"cron_prompt.md missing {phase}")
-    
+
     def test_watchdog_prompt_references_scripts(self):
         content = open(TEMPLATES_DIR / "watchdog_prompt.md").read()
         for script in ["state.py", "evaluate.py", "usage.py"]:
             self.assertIn(script, content, f"watchdog_prompt.md missing {script}")
-    
+
     def test_resume_prompt_references_scripts(self):
         content = open(TEMPLATES_DIR / "resume_prompt.md").read()
         for script in ["state.py", "plan.py", "evaluate.py"]:
             self.assertIn(script, content, f"resume_prompt.md missing {script}")
-    
+
     def test_no_syntax_errors_in_state_py(self):
         env = {**os.environ, "PYTHONPATH": str(SCRIPTS_DIR)}
         result = subprocess.run(f"python3 -m py_compile {SCRIPTS_DIR}/state.py", shell=True, capture_output=True, text=True, env=env)
@@ -427,18 +427,18 @@ class TestTemplates(unittest.TestCase):
 
 class TestSkillDoc(AutoresearchTestBase):
     """Test SKILL.md consistency with actual files."""
-    
+
     def test_skill_references_existing_scripts(self):
         skill_path = BASE_DIR / "SKILL.md"
         content = open(skill_path).read()
         for script in ["state.py", "plan.py", "evaluate.py", "workspace.py", "report.py", "registry.py", "usage.py"]:
             self.assertIn(script, content, f"SKILL.md missing reference to {script}")
-    
+
     def test_skill_references_existing_templates(self):
         content = open(BASE_DIR / "SKILL.md").read()
         for template in ["cron_prompt", "watchdog_prompt", "resume_prompt"]:
             self.assertIn(template, content, f"SKILL.md missing reference to {template}")
-    
+
     def test_all_referred_scripts_exist(self):
         content = open(BASE_DIR / "SKILL.md").read()
         for script in ["state.py", "plan.py", "evaluate.py", "workspace.py", "report.py", "registry.py", "usage.py"]:
@@ -448,19 +448,19 @@ class TestSkillDoc(AutoresearchTestBase):
 
 class TestFullE2E(AutoresearchTestBase):
     """End-to-end test: full knowledge research loop with 3 experiments."""
-    
+
     def test_full_knowledge_research_loop(self):
         # Initialize
         self.run_helper("state", "init", self.run_dir, "E2E Test", "test", "scope", "quick", "3")
-        
+
         # Init workspace
         self.workspace_init()
-        
+
         # Create initial document and commit
         with open(os.path.join(self.ws_dir, "research.md"), "w") as f:
             f.write("# E2E Test Research\n\n## Section 1\n\n## Section 2\n\n## Section 3\n")
         subprocess.run("git add -A && git commit -m 'initial skeleton'", shell=True, capture_output=True, cwd=self.ws_dir)
-        
+
         # Write plan
         exps = json.dumps([
             {"id":1,"type":"investigate","hypothesis":"Fill section 1 with real data","target_section":"Section 1"},
@@ -469,7 +469,7 @@ class TestFullE2E(AutoresearchTestBase):
         ])
         self.run_helper("plan", "write", self.run_dir, exps)
         self.run_helper("state", "update-status", self.run_dir, "executing", "--experiments-total", "3")
-        
+
         # Experiment loop
         merged_total = 0
         reverted_total = 0
@@ -478,90 +478,90 @@ class TestFullE2E(AutoresearchTestBase):
             result = self.run_helper("workspace", "branch", self.ws_dir, exp_id, f"exp{exp_id}")
             for cmd in result["commands"]:
                 subprocess.run(cmd, shell=True, capture_output=True, cwd=self.ws_dir)
-            
+
             self.run_helper("plan", "update-experiment", self.run_dir, exp_id, "in_progress")
-            
+
             # Simulate work: add content to research.md
             current_content = Path(os.path.join(self.ws_dir, "research.md")).read_text()
             new_content = current_content.replace(f"## Section {exp_id}\n", f"## Section {exp_id}\n\nThis section has been filled with researched data and evidence for experiment {exp_id}.\n")
             Path(os.path.join(self.ws_dir, "research.md")).write_text(new_content)
-            
+
             # Commit the change
             subprocess.run(f"git add -A && git commit -m 'exp {exp_id}'", shell=True, capture_output=True, cwd=self.ws_dir)
-            
+
             # Score (all good experiments)
             score_result = self.run_helper("evaluate", "score", "4", "4", "4", "4", "4")
             self.assertEqual(score_result["decision"], "MERGE")
-            
+
             # Merge
             merge_result = self.run_helper("workspace", "merge", self.ws_dir, exp_id, f"exp{exp_id}", f"Completed experiment {exp_id}")
             for cmd in merge_result["commands"]:
                 subprocess.run(cmd, shell=True, capture_output=True, cwd=self.ws_dir)
-            
+
             self.run_helper("plan", "update-experiment", self.run_dir, exp_id, "merged", "--reason", f"Experiment {exp_id} completed")
             self.run_helper("evaluate", "log-result", self.run_dir, exp_id, f"Experiment {exp_id}", "investigate", f"Section {exp_id}", "MERGE", "Good data", "--scores", "E=4,A=4,D=4,R=4,N=4")
             merged_total += 1
-            
+
             # Update status
             self.run_helper("state", "update-status", self.run_dir, "executing",
                            "--experiments-done", str(exp_id),
                            "--experiments-merged", str(merged_total))
-        
+
         # Also test a revert path
         result = self.run_helper("workspace", "branch", self.ws_dir, 99, "bad-exp")
         for cmd in result["commands"]:
             subprocess.run(cmd, shell=True, capture_output=True, cwd=self.ws_dir)
-        
+
         # Simulate bad work
         current_content = Path(os.path.join(self.ws_dir, "research.md")).read_text()
         Path(os.path.join(self.ws_dir, "research.md")).write_text(current_content + "\n\n# VANDALISM\n\nThis is bad content.\n")
         subprocess.run("git add -A && git commit -m 'bad'", shell=True, capture_output=True, cwd=self.ws_dir)
-        
+
         # Score - should be bad
         score_result = self.run_helper("evaluate", "score", "1", "1", "1", "1", "1")
         self.assertEqual(score_result["decision"], "REVERT")
-        
+
         # Revert
         revert_result = self.run_helper("workspace", "revert", self.ws_dir, 99, "bad-exp")
         for cmd in revert_result["commands"]:
             subprocess.run(cmd, shell=True, capture_output=True, cwd=self.ws_dir)
-        
+
         # Verify we're back on main and vandalism is gone
         current_content = Path(os.path.join(self.ws_dir, "research.md")).read_text()
         self.assertNotIn("VANDALISM", current_content)
         reverted_total = 1
-        
+
         # Final state update
         self.run_helper("state", "update-status", self.run_dir, "complete", "--experiments-done", "4", "--merged", "3", "--reverted", "1")
-        
+
         # Generate report
         report_result = self.run_helper("report", "generate", self.run_dir)
         self.assertEqual(report_result["status"], "generated")
-        
+
         report_content = Path(report_result["path"]).read_text()
         self.assertIn("E2E Test", report_content)
         self.assertIn("Merged Experiments", report_content)
-        
+
         # Verify final status
         final_status = self.run_helper("state", "status", self.run_dir)
         self.assertEqual(final_status["phase"], "complete")
         self.assertEqual(final_status["experiments_merged"], 3)
         self.assertEqual(final_status["experiments_reverted"], 1)
-        
+
         # Verify git log has all merges
         log_result = self.run_helper("workspace", "log", self.ws_dir)
         self.assertIn("commands", log_result)
-    
+
     def test_budget_enforcement(self):
         """Test that budget check correctly blocks after max experiments."""
         self.run_helper("state", "init", self.run_dir, "Budget Test", "test", "scope", "quick", "3")
-        
+
         # Set experiments_done above hard cap
         self.run_helper("state", "update-status", self.run_dir, "executing", "--experiments-done", "20")
-        
+
         result = self.run_helper("state", "check-budget", self.run_dir, "--tokens", "100000")
         self.assertTrue(result["exceeded"])
-        
+
         # Find the experiments_exceeded violation
         violations = result["violations"]
         found = False

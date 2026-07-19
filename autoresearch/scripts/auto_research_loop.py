@@ -71,6 +71,9 @@ NVIDIA_KEY = os.environ.get("NVIDIA_INFERENCE_API_KEY") or os.environ.get("NVIDI
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENCODE_KEY = os.environ.get("OPENCODE_API_KEY", "")
 COORD = os.environ.get("COORDINATOR_URL", "").rstrip("/")
+DISCORD_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
+DISCORD_CHANNEL = os.environ.get("DISCORD_RSI_CHANNEL_ID", "1527922756480401478")
+DISCORD_INSIGHT_EVERY = int(os.environ.get("DISCORD_INSIGHT_EVERY", "5"))
 
 BASE_SYSTEM = """You are a GPU purchase-decision judge for a buying-assistant team.
 Given a buyer request, decide where and how to buy. Respond with ONLY a JSON
@@ -186,25 +189,12 @@ def evaluate(lessons: str):
     }, fails
 
 
-# Rotating research strategies keep mutations diverse so the trend explores
-# (moves and dips) instead of plateauing on one local optimum.
-STRATEGIES = [
-    "Rewrite the policy from a DIFFERENT ANGLE than the champion — try rules the champion lacks.",
-    "Be AGGRESSIVE on warranty/counterfeit safety even if it risks a few accuracy points.",
-    "Optimize for SPEED: fewer, sharper rules so the judge decides faster.",
-    "Focus on the specific FAILURES below — add precise rules that fix exactly those.",
-    "Simplify radically: keep only the highest-leverage rules, drop the rest.",
-]
-
-
-def mutate(champion_lessons, history, fails, cycle=0, hypothesis=""):
-    strategy = STRATEGIES[cycle % len(STRATEGIES)]
+def mutate(champion_lessons, history, fails, hypothesis=""):
     prompt = f"""You are the researcher in an autoresearch loop optimizing a GPU
 purchase-decision policy. The policy IS the lessons file below (like
 autoresearch's program.md). Objectives: accuracy UP, response length SHORT
 (long lessons slow retrieval), zero forbidden-platform picks, no regression.
 
-THIS CYCLE'S STRATEGY: {strategy}
 HYPOTHESIS FOR THIS EXPERIMENT: {hypothesis or '(general improvement)'}
 
 CURRENT CHAMPION LESSONS:
@@ -219,38 +209,35 @@ Write an improved lessons file: <=20 tight bullet rules, generalized from the
 failures, no test-case IDs or memorized answers, markdown bullets only.
 Reply with ONLY the new lessons file content."""
     sys_msg = "You improve policy instruction files. Output only the file content."
-    # Vary temperature so successive mutations differ and the trend keeps moving.
-    temp = 0.4 + 0.5 * ((cycle % 5) / 4)
-    text_out = None
+    temperature = 0.4 + 0.5 * ((len(history) % 5) / 4)
+    text = None
     if OPENCODE_KEY:
         try:
-            text_out, _ = chat(
+            text, _ = chat(
                 "https://opencode.ai/zen/v1",
                 OPENCODE_KEY,
                 os.environ.get("RESEARCHER_MODEL", "nemotron-3-ultra-free"),
                 sys_msg,
                 prompt,
                 timeout=240,
-                temperature=temp,
+                temperature=temperature,
             )
         except Exception:
-            text_out = None
-    if text_out is None:
+            text = None
+    if text is None:
         if not NVIDIA_KEY and not OPENROUTER_KEY:
             raise RuntimeError("No researcher API key available")
-        text_out, _ = chat(
+        text, _ = chat(
             "https://integrate.api.nvidia.com/v1",
             NVIDIA_KEY or OPENROUTER_KEY,
             "nvidia/nemotron-3-super-120b-a12b",
             sys_msg,
             prompt,
             timeout=240,
-            temperature=temp,
+            temperature=temperature,
         )
-    # strip <think> blocks reasoning models may emit
-    text_out = re.sub(r"<think>.*?</think>", "", text_out, flags=re.DOTALL)
-    return text_out.strip()
-
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    return text.strip()
 
 
 def snapshot(entry):
@@ -268,7 +255,40 @@ def snapshot(entry):
                 )
             except requests.RequestException:
                 pass
+    post_discord_insight(entry, hist)
     return hist
+
+
+def post_discord_insight(entry, history):
+    """Post promotions and periodic measured checkpoints; no webhook required."""
+    if not DISCORD_TOKEN or "accepted" not in entry:
+        return
+    number = int(re.search(r"\d+", entry.get("version", "0")).group()) if re.search(
+        r"\d+", entry.get("version", "")
+    ) else len(history)
+    if not entry.get("accepted") and number % DISCORD_INSIGHT_EVERY:
+        return
+    champions = [row for row in history if row.get("role") == "champion"]
+    baseline = champions[0] if champions else history[0]
+    delta = float(entry.get("accuracy", 0)) - float(baseline.get("accuracy", 0))
+    verdict = "PROMOTED" if entry.get("accepted") else "checkpoint"
+    content = (
+        f"🔬 **AutoResearch {verdict} · {entry.get('version')}**\n"
+        f"Accuracy **{entry.get('accuracy', 0):.4f}** ({delta:+.4f} from baseline) · "
+        f"retrieval **{entry.get('retrieval_s', 0):.2f}s** · "
+        f"safety **{entry.get('deal_safety', 0):.1f}%**\n"
+        f"Hypothesis: {entry.get('hypothesis') or 'baseline policy check'}"
+    )
+    try:
+        response = requests.post(
+            f"https://discord.com/api/v10/channels/{DISCORD_CHANNEL}/messages",
+            headers={"Authorization": f"Bot {DISCORD_TOKEN}"},
+            json={"content": content[:1900]},
+            timeout=15,
+        )
+        response.raise_for_status()
+    except requests.RequestException as error:
+        print(f"[autoresearch] Discord insight skipped: {error}", flush=True)
 
 
 def _tier_limits():
@@ -417,7 +437,7 @@ def setup_run(goal=None):
     return run_dir, ws, target, rid
 
 
-def policy_cycle(run_dir, workspace_dir, exp, history, champ_metrics, fails, cycle=0):
+def policy_cycle(run_dir, workspace_dir, exp, history, champ_metrics, fails):
     """One branch → mutate → evaluate → merge/revert cycle."""
     exp_id = exp["id"]
     desc = re.sub(r"[^a-zA-Z0-9_-]+", "-", exp.get("hypothesis", "mutate")[:40]).strip("-") or "mutate"
@@ -426,11 +446,7 @@ def policy_cycle(run_dir, workspace_dir, exp, history, champ_metrics, fails, cyc
 
     champion = read_main_file(workspace_dir, TARGET_FILE)
     try:
-        candidate = mutate(
-            champion, history, fails,
-            cycle=cycle,
-            hypothesis=exp.get("hypothesis", ""),
-        )
+        candidate = mutate(champion, history, fails, hypothesis=exp.get("hypothesis", ""))
     except Exception as e:
         discard_experiment(workspace_dir, exp_id, desc)
         update_experiment(run_dir, exp_id, "failed", reason=str(e))
@@ -496,17 +512,20 @@ except Exception as _e:
     pass
 
 def resync_coordinator():
-    """On start, re-POST the local history as a list (coordinator appends);
-    keeps the live leaderboard populated after an ephemeral redeploy wipe."""
+    """Replace Railway history from durable EC2 state after an ephemeral wipe."""
     if not COORD or not SNAPSHOTS.exists():
         return
     try:
         hist = json.loads(SNAPSHOTS.read_text())
-        requests.post(
+        response = requests.post(
             f"{COORD}/api/radar",
             timeout=20,
-            json=[{"source": "autoresearch-loop", **e} for e in hist],
+            json={
+                "replace": True,
+                "rows": [{"source": "autoresearch-loop", **e} for e in hist],
+            },
         )
+        response.raise_for_status()
         print(f"[autoresearch] resynced {len(hist)} snapshots to coordinator", flush=True)
     except (requests.RequestException, json.JSONDecodeError, OSError):
         pass
@@ -536,15 +555,8 @@ def main():
     consecutive_failures = 0
     merged = reverted = failed = 0
     done = 0
-    cycle = 0
 
     while True:
-        cycle += 1
-        # Periodically re-push full history so an ephemeral coordinator wipe
-        # (Railway redeploy) self-heals within a few cycles — no AWS needed.
-        if cycle % 6 == 0:
-            resync_coordinator()
-
         ctrl = _read_control(run_dir)
         action = (ctrl.get("action") or "none").lower()
         if action == "pause":
@@ -587,7 +599,6 @@ def main():
             if MODE == "policy":
                 history, champ_metrics, fails, ok = policy_cycle(
                     run_dir, workspace_dir, pending, history, champ_metrics, fails,
-                    cycle=cycle,
                 )
                 if history is None:
                     consecutive_failures += 1
@@ -622,6 +633,8 @@ def main():
             update_experiment(run_dir, pending["id"], "failed", reason=str(e))
 
         done += 1
+        if done % 5 == 0:
+            resync_coordinator()
         update_status(
             run_dir,
             "executing",

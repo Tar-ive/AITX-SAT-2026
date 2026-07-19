@@ -49,5 +49,22 @@ services:
       - ./scripts:/deploy/scripts:ro
       - nemoclaw_home:/root
 
+  autoresearch:
+    image: python:3.12-slim
+    container_name: autoresearch
+    working_dir: /repo
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REPO_DIR: /repo
+      CYCLE_SECS: ${CYCLE_SECS:-300}
+      COORDINATOR_URL: ${COORDINATOR_URL:-https://nemoclaw-coordinator-api-production.up.railway.app}
+    volumes:
+      - ../..:/repo
+    command:
+      - sh
+      - -c
+      - apt-get update -qq && apt-get install -y -qq git >/dev/null && pip install -q requests && exec python scripts/auto_research_loop.py
+
 volumes:
   nemoclaw_home:

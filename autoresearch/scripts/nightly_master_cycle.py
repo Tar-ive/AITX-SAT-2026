@@ -3,20 +3,21 @@
 
 Runs at 05:30 UTC (after the gateway's 05:00 episodic distillation):
 
-  1. PULL the day's digest: fresh MEMORY.md lessons + episodes.jsonl
-  2. BUILD candidate policies, one per strategy:
+  1. PULL the day's digest: MEMORY.md, sandbox episodes, and Discord episodes
+  2. RECALL prior winning ideas from the durable champion and Supabase-backed state
+  3. BUILD candidate policies, one per strategy:
        control      yesterday's champion (regression guard)
        episodic     tonight's synthesized MEMORY.md lessons
        exemplar-sft lessons distilled from good episodes (SFT-style route)
        autoresearch the mutation loop's current champion
-  3. EVALUATE all candidates on the four criteria
+  4. EVALUATE and select on the four criteria
        accuracy UP · retrieval LOW · deal safety (price regression) ·
        stability (model regression vs champion)
-  4. SELECT the day's strategy (Pareto gate, prefer simpler on ties)
   5. PROMOTE daily: winner's lessons are written into the LIVE sandbox
      MEMORY.md — the Discord agents train on it all day
   6. WEEKLY (Sundays): a synthesis report goes to Discord for human
      approval/feedback; replies flow back through episodic distillation.
+  7. HUMAN feedback becomes the next digest, closing the loop.
 
 State: data/strategy_log.json, data/radar_snapshots.json, Supabase (via the
 shell wrapper), coordinator API. Stdlib + requests only.
@@ -24,11 +25,15 @@ shell wrapper), coordinator API. Stdlib + requests only.
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+import requests
 
 sys.path.insert(0, str(Path(__file__).parent))
 from auto_research_loop import evaluate, chat, OPENCODE_KEY, NVIDIA_KEY  # noqa: E402
@@ -39,6 +44,7 @@ SNAPSHOTS = REPO / "data" / "radar_snapshots.json"
 CHAMPION = REPO / "research" / "daily-champion-lessons.md"
 COORD = os.environ.get("COORDINATOR_URL", "").rstrip("/")
 GUILD = os.environ.get("DISCORD_SERVER_ID", "1527850934535717055")
+DISCORD_EPISODES = REPO / "data" / "discord_episodes.jsonl"
 
 
 def sandbox():
@@ -106,7 +112,6 @@ def select(results, champ_acc):
 
 
 def discord_post(token, content):
-    import requests
     chans = requests.get(f"https://discord.com/api/v10/guilds/{GUILD}/channels",
                          headers={"Authorization": f"Bot {token}"}, timeout=15).json()
     target = next((c["id"] for c in chans if c.get("name") == "daily"),
@@ -117,6 +122,145 @@ def discord_post(token, content):
                       json={"content": content[:1900]}, timeout=15)
 
 
+def discord_episodes(token):
+    """Convert recent human→agent Discord exchanges into replayable episodes."""
+    if not token:
+        return []
+    headers = {"Authorization": f"Bot {token}"}
+    channels = requests.get(
+        f"https://discord.com/api/v10/guilds/{GUILD}/channels",
+        headers=headers,
+        timeout=15,
+    )
+    channels.raise_for_status()
+    wanted = [
+        row for row in channels.json()
+        if row.get("type") == 0 and row.get("name") in {"daily", "gpu-desk"}
+    ]
+    episodes = []
+    for channel in wanted:
+        response = requests.get(
+            f"https://discord.com/api/v10/channels/{channel['id']}/messages",
+            params={"limit": 100},
+            headers=headers,
+            timeout=15,
+        )
+        response.raise_for_status()
+        pending = None
+        for message in reversed(response.json()):
+            author = message.get("author", {})
+            if not author.get("bot"):
+                if pending and pending["responses"]:
+                    episodes.append(_discord_episode(channel, pending))
+                pending = {"message": message, "responses": []}
+            elif pending:
+                pending["responses"].append(message)
+        if pending and pending["responses"]:
+            episodes.append(_discord_episode(channel, pending))
+    return episodes
+
+
+def _discord_episode(channel, exchange):
+    source = exchange["message"]
+    replies = exchange["responses"]
+    reactions = [
+        reaction.get("emoji", {}).get("name", "")
+        for row in [source, *replies]
+        for reaction in row.get("reactions", [])
+    ]
+    quality = (
+        "bad" if any(emoji in {"👎", "❌"} for emoji in reactions)
+        else "good" if any(emoji in {"👍", "✅"} for emoji in reactions)
+        else "neutral"
+    )
+    return {
+        "episode_id": f"discord:{channel['id']}:{source['id']}",
+        "date": source.get("timestamp", "")[:10],
+        "channel": channel["name"],
+        "task_type": "discord-pc-research",
+        "request": source.get("content", "")[:4000],
+        "agent_chain": [row.get("author", {}).get("username") for row in replies],
+        "outcome": "\n".join(row.get("content", "") for row in replies)[:12000],
+        "feedback": {"reactions": reactions},
+        "quality": quality,
+        "lesson": (
+            "Human approved this agent response." if quality == "good"
+            else "Human rejected this agent response; inspect before reuse." if quality == "bad"
+            else ""
+        ),
+    }
+
+
+def store_discord_episodes(rows):
+    existing = {}
+    if DISCORD_EPISODES.exists():
+        for line in DISCORD_EPISODES.read_text().splitlines():
+            try:
+                row = json.loads(line)
+                existing[row["episode_id"]] = row
+            except (json.JSONDecodeError, KeyError):
+                pass
+    existing.update({row["episode_id"]: row for row in rows})
+    DISCORD_EPISODES.parent.mkdir(exist_ok=True)
+    DISCORD_EPISODES.write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in existing.values())
+    )
+
+
+def _sql_quote(value):
+    tag = f"q{uuid.uuid4().hex[:10]}"
+    return f"${tag}${value}${tag}$"
+
+
+def persist_supabase(episodes=(), run=None):
+    """Durable service write through the hosted Supabase pooler."""
+    password = os.environ.get("SUPABASE_DB_PW", "")
+    if not password or not shutil.which("psql"):
+        return False
+    statements = []
+    for row in episodes:
+        quality = row.get("quality") if row.get("quality") in {"good", "bad", "neutral"} else "neutral"
+        statements.append(
+            "insert into public.episodes "
+            "(episode_id,episode_date,channel,task_type,request,agent_chain,outcome,feedback,quality,lesson) values ("
+            f"{_sql_quote(row['episode_id'])},nullif({_sql_quote(row.get('date', ''))},'')::date,"
+            f"{_sql_quote(row.get('channel', ''))},{_sql_quote(row.get('task_type', ''))},"
+            f"{_sql_quote(row.get('request', ''))},{_sql_quote(json.dumps(row.get('agent_chain', [])))}::jsonb,"
+            f"{_sql_quote(row.get('outcome', ''))},{_sql_quote(json.dumps(row.get('feedback', {})))}::jsonb,"
+            f"{_sql_quote(quality)},{_sql_quote(row.get('lesson', ''))}) "
+            "on conflict (episode_id) do update set feedback=excluded.feedback,quality=excluded.quality,lesson=excluded.lesson;"
+        )
+    if run:
+        statements.append(
+            "insert into public.rsi_runs "
+            "(run_id,version,source,decision_quality,n_valid,n_total,decision) values ("
+            f"{_sql_quote(run['run_id'])},{_sql_quote(run['version'])},"
+            f"{_sql_quote('nightly-strategy-tournament')},{run['accuracy']},"
+            f"{run['n']},{run['n']},{_sql_quote(run['decision'])}) "
+            "on conflict (run_id) do update set decision_quality=excluded.decision_quality,"
+            "n_valid=excluded.n_valid,n_total=excluded.n_total,decision=excluded.decision,evaluated_at=now();"
+        )
+    if not statements:
+        return True
+    dsn = (
+        f"host={os.environ.get('SUPABASE_POOLER_HOST', 'aws-0-ca-central-1.pooler.supabase.com')} "
+        "port=5432 dbname=postgres "
+        f"user={os.environ.get('SUPABASE_POOLER_USER', 'postgres.qzegmkzyzalmakoqxezc')} "
+        "sslmode=require"
+    )
+    result = subprocess.run(
+        ["psql", dsn, "-q", "-v", "ON_ERROR_STOP=1"],
+        input="\n".join(statements),
+        text=True,
+        env={**os.environ, "PGPASSWORD": password},
+        capture_output=True,
+    )
+    if result.returncode:
+        print(f"[master] Supabase persistence failed: {result.stderr[-300:]}", flush=True)
+        return False
+    return True
+
+
 def main():
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     box = sandbox()
@@ -125,6 +269,21 @@ def main():
 
     episodic = pull(box, "/sandbox/.openclaw/workspace/MEMORY.md")
     episodes = pull(box, "/sandbox/.openclaw/workspace/memory/episodes.jsonl")
+    token = os.environ.get("DISCORD_BOT_TOKEN", "")
+    try:
+        live_discord = discord_episodes(token)
+        store_discord_episodes(live_discord)
+        persist_supabase(episodes=live_discord)
+        episodes += "".join(json.dumps(row) + "\n" for row in live_discord)
+        print(f"[master] ingested {len(live_discord)} Discord episodes", flush=True)
+        if COORD and live_discord:
+            requests.post(
+                f"{COORD}/api/episodic-memory",
+                json=live_discord,
+                timeout=15,
+            ).raise_for_status()
+    except requests.RequestException as error:
+        print(f"[master] Discord ingestion skipped: {error}", flush=True)
     autoresearch = (REPO / "research" / "champion-lessons.md")
     candidates = {
         "control": CHAMPION.read_text() if CHAMPION.exists() else "",
@@ -143,6 +302,13 @@ def main():
     champ_acc = results["control"]["accuracy"]
     winner = select(results, champ_acc)
     print(f"[master] strategy of the day: {winner}", flush=True)
+    persist_supabase(run={
+        "run_id": f"strategy-{today}",
+        "version": f"daily-{today}-{winner}",
+        "accuracy": results[winner]["accuracy"],
+        "n": results[winner]["n"],
+        "decision": f"promote:{winner}",
+    })
 
     # PROMOTE: winner's lessons become the live agents' memory + new champion
     CHAMPION.parent.mkdir(exist_ok=True)
@@ -175,7 +341,6 @@ def main():
         except Exception:
             pass
 
-    token = os.environ.get("DISCORD_BOT_TOKEN", "")
     if token:
         lines = [f"🌙 **Nightly strategy tournament — {today}**"]
         for n, m in results.items():

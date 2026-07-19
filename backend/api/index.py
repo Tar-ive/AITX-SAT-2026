@@ -13,12 +13,15 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from dashboard_api import (  # noqa: E402
     CATEGORIES,
+    COORDINATOR_URL,
     IMPROVEMENT_RUNS,
     RSI_RUNS_CSV,
     autoresearch_experiments,
     build_story,
+    coordinator_json,
     database,
     marketplace,
+    measured_radar,
     rsi_idea_memory,
     rsi_operations,
     try_supabase_rsi_runs,
@@ -66,6 +69,24 @@ class handler(BaseHTTPRequestHandler):
                 self.json(autoresearch_experiments())
             except Exception as error:
                 self.json({"error": str(error), "experiments": []}, 503)
+            return
+
+        coordinator_routes = {
+            "/autoresearch-status": "/api/autoresearch/status",
+            "/evaluations": "/api/evaluations",
+            "/episodic-memory": "/api/episodic-memory",
+        }
+        if route == "/radar":
+            try:
+                self.json(measured_radar())
+            except Exception as error:
+                self.json({"source": COORDINATOR_URL, "error": str(error)}, 503)
+            return
+        if route in coordinator_routes:
+            try:
+                self.json(coordinator_json(coordinator_routes[route]))
+            except Exception as error:
+                self.json({"source": COORDINATOR_URL, "error": str(error)}, 503)
             return
 
         if route == "/supabase-rsi-runs":
