@@ -1,3 +1,4 @@
 step,run_id,version,parent_version,evaluated_at,accepted,baseline,current,evidence_status,policy_change,decision_quality,decision_ci,landed_price_error_pct,landed_ci,median_latency_s,latency_ci,valid_url_rate_pct,url_ci,unsupported_claims_pct,claims_ci,price_forecast_regret_usd,regret_ci,sample_size,teacher_model
 0,baseline-nomem-20260718,v1.0,,2026-07-18T20:41:07.756052+00:00,true,true,true,measured,"Measured baseline (memory OFF, 45 Nemotron rollouts)",0.551111,0.050076,,,35.495363,4.645941,,,,,,,45,Nemotron
 1,cloud-memory-20260718,auto-20260718,v1.0,2026-07-18T21:21:11+00:00,false,false,false,measured,"Cloud cron: memory snapshot was empty; 34 of 45 provider calls failed",0.166667,0.096101,,,49.966129,0.505793,,,,,,,45,Nemotron
+2,prime-v1-20260718,v1.1,v1.0,2026-07-18T23:05:35.844000+00:00,false,false,false,measured,"Canonical Prime-RL v1 environment; GPU, MacBook, and RAM golden set",0.582222,0.052596,,,6.77029,1.478771,,,,,,,45,Nemotron

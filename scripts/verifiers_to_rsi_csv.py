@@ -73,9 +73,11 @@ def main():
     outputs = load_outputs(args.results)
     aggregates = {}
     for metric in METRICS:
-        fallback = "reward" if metric == "decision_quality" else None
         values = [
-            row.get("metrics", {}).get(metric, row.get(fallback))
+            row.get("metrics", {}).get(
+                metric,
+                row.get("rewards", {}).get(metric, row.get("reward")),
+            )
             for row in outputs
         ]
         if metric == "decision_quality":
@@ -89,6 +91,9 @@ def main():
             return float(t["total_ms"]) / 1000
         if "total" in t:
             return float(t["total"])
+        scoring = t.get("scoring", {})
+        if t.get("start") is not None and scoring.get("end") is not None:
+            return float(scoring["end"]) - float(t["start"])
         return 0.0
     latency = median_ci([_latency_s(row) for row in outputs])
 

@@ -1,16 +1,20 @@
 {
-  "source": "cloud cron 0ed8b413",
-  "evaluated_at": "2026-07-18T21:21:11+00:00",
+  "source": "Prime evaluation ipjzblojwpcswqvk67l7fczc",
+  "evaluated_at": "2026-07-18T23:05:35.844000Z",
   "model": "nvidia/nemotron-3-super-120b-a12b",
-  "avg_reward": 0.16666666666666666,
+  "avg_reward": 0.5822222222222222,
   "avg_metrics": {
-    "decision_quality": 0.16666666666666666,
-    "valid_json_rate_pct": 22.22222222222222,
+    "decision_quality": 0.5822222222222218,
+    "valid_json_rate_pct": 100.0,
     "avoided_platform_violation_pct": 0.0
   },
   "num_examples": 15,
   "rollouts_per_example": 3,
   "rollout_count": 45,
-  "eval_seconds": 356.0899851322174,
-  "error_rate_pct": 75.55555555555556
+  "eval_seconds": 92.1938202381134,
+  "error_rate_pct": 0.0,
+  "cost_usd": 0.0208,
+  "environment": "tarive/gpu-deal-judge-v1",
+  "environment_version": "0.1.1",
+  "viewer_url": "https://app.primeintellect.ai/dashboard/evaluations/ipjzblojwpcswqvk67l7fczc"
 }

@@ -303,6 +303,13 @@ class CoordinatorAPIHandler(BaseHTTPRequestHandler):
             return self._reply(200, {"status": "success", "stored": len(rows), "total": len(existing)})
 
         if parsed_path.path == "/api/radar":
+            # Full-history replace (self-heals ephemeral wipes) or append.
+            if isinstance(body, dict) and body.get("replace") and isinstance(body.get("rows"), list):
+                rows = body["rows"]
+                os.makedirs(os.path.dirname(RADAR_OUTPUT_PATH), exist_ok=True)
+                with open(RADAR_OUTPUT_PATH, "w") as f:
+                    json.dump(rows, f, indent=2)
+                return self._reply(200, {"status": "success", "replaced": len(rows)})
             rows = body if isinstance(body, list) else [body]
             existing = []
             if os.path.exists(RADAR_OUTPUT_PATH):

@@ -466,6 +466,24 @@ def policy_cycle(run_dir, workspace_dir, exp, history, champ_metrics, fails):
     return history, champ_metrics, cand_fails or fails, False
 
 
+
+def resync_coordinator():
+    """On start, re-POST the local history as a list (coordinator appends);
+    keeps the live leaderboard populated after an ephemeral redeploy wipe."""
+    if not COORD or not SNAPSHOTS.exists():
+        return
+    try:
+        hist = json.loads(SNAPSHOTS.read_text())
+        requests.post(
+            f"{COORD}/api/radar",
+            timeout=20,
+            json=[{"source": "autoresearch-loop", **e} for e in hist],
+        )
+        print(f"[autoresearch] resynced {len(hist)} snapshots to coordinator", flush=True)
+    except (requests.RequestException, json.JSONDecodeError, OSError):
+        pass
+
+
 def main():
     RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
     run_dir, workspace_dir, target, rid = setup_run()

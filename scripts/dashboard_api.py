@@ -23,6 +23,8 @@ RSI_RUNS_CSV = Path(os.getenv("RSI_RUNS_CSV", ROOT / "data/rsi_runs.csv"))
 MODEL_METRICS_CSV = Path(os.getenv("MODEL_METRICS_CSV", ROOT / "data/model_metrics.csv"))
 LATEST_RSI_EVAL_JSON = Path(os.getenv("LATEST_RSI_EVAL_JSON", ROOT / "data/latest_rsi_eval.json"))
 LESSONS_FILE = Path(os.getenv("RSI_LESSONS_FILE", ROOT / "data/lessons.md"))
+AUTORESEARCH_EXPERIMENTS = Path(os.getenv("AUTORESEARCH_EXPERIMENTS", ROOT / "data/autoresearch_experiments.json"))
+RADAR_SNAPSHOTS = Path(os.getenv("RADAR_SNAPSHOTS", ROOT / "data/radar_snapshots.json"))
 VERIFIERS_EVAL_DIR = ROOT / "environments/gpu_deal_judge/outputs/evals"
 DISCORD_RSI_CHANNEL_ID = os.getenv("DISCORD_RSI_CHANNEL_ID", "1527922756480401478")
 CATEGORIES = {
@@ -49,10 +51,16 @@ def load_env():
 
 def database():
     """Use the linked hosted pooler because the direct Supabase host is IPv6-only here."""
-    pooler = (ROOT / "supabase/.temp/pooler-url").read_text().strip()
+    if database_url := os.getenv("DATABASE_URL"):
+        return psycopg2.connect(database_url, sslmode="require", connect_timeout=8)
+    pooler = os.getenv("SUPABASE_POOLER_URL")
+    if not pooler:
+        pooler = (ROOT / "supabase/.temp/pooler-url").read_text().strip()
     endpoint = pooler.rsplit("@", 1)[-1].split("/", 1)[0]
     host, port = endpoint.rsplit(":", 1)
-    project_ref = (ROOT / "supabase/.temp/project-ref").read_text().strip()
+    project_ref = os.getenv("SUPABASE_PROJECT_REF")
+    if not project_ref:
+        project_ref = (ROOT / "supabase/.temp/project-ref").read_text().strip()
     return psycopg2.connect(
         host=host,
         port=int(port),
@@ -204,6 +212,39 @@ def rsi_operations():
     }
 
 
+def rsi_idea_memory():
+    """Return successful lessons and promotion count from hosted Supabase."""
+    with database() as connection, connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(
+            """
+            select lesson, task_type, inserted_at
+            from public.episodes
+            where quality = 'good' and nullif(trim(lesson), '') is not null
+            order by inserted_at desc
+            limit 3
+            """
+        )
+        ideas = [
+            {key: json_value(value) for key, value in row.items()}
+            for row in cursor.fetchall()
+        ]
+        cursor.execute(
+            """
+            select count(*) as promoted_count
+            from public.rsi_runs
+            where lower(coalesce(decision, '')) in
+                  ('promote', 'promoted', 'accepted', 'champion')
+            """
+        )
+        promoted_count = cursor.fetchone()["promoted_count"]
+    return {
+        "status": "live",
+        "database": "hosted Supabase",
+        "promoted_count": promoted_count,
+        "ideas": ideas,
+    }
+
+
 def discord_rsi_messages():
     response = requests.get(
         f"https://discord.com/api/v10/channels/{DISCORD_RSI_CHANNEL_ID}/messages",
@@ -227,6 +268,59 @@ def discord_rsi_messages():
         if row["content"].startswith(("**Actual RSI digest", "**Human promotion gate"))
     ]
     return {"status": "live", "channel": "daily", "messages": list(reversed(messages))}
+
+
+
+
+def autoresearch_experiments():
+    """Karpathy-style experiment history for the leaderboard charts."""
+    if AUTORESEARCH_EXPERIMENTS.exists():
+        return json.loads(AUTORESEARCH_EXPERIMENTS.read_text())
+    # Fall back to radar snapshots if the seed file is missing
+    if RADAR_SNAPSHOTS.exists():
+        rows = json.loads(RADAR_SNAPSHOTS.read_text())
+        return {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "seed": None,
+            "summary": {"experiments": len(rows), "kept": sum(1 for r in rows if r.get("accepted") or r.get("kept"))},
+            "experiments": rows,
+            "seed_justification": {"supabase_note": "Loaded from radar_snapshots.json"},
+        }
+    raise FileNotFoundError("no autoresearch experiment history")
+
+
+def try_supabase_rsi_runs():
+    """Best-effort read of public.rsi_runs when DB credentials exist."""
+    try:
+        with database() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                "select run_id, version, source, decision_quality, n_valid, n_total, "
+                "decision, evaluated_at from public.rsi_runs order by evaluated_at asc"
+            )
+            rows = cursor.fetchall()
+        return {"status": "ok", "count": len(rows), "runs": rows}
+    except Exception as error:
+        # Surface measured CSV anchors so the UI can still justify the seed.
+        csv_runs = []
+        if RSI_RUNS_CSV.exists():
+            with RSI_RUNS_CSV.open() as fh:
+                for row in csv.DictReader(fh):
+                    csv_runs.append({
+                        "run_id": row.get("run_id"),
+                        "version": row.get("version"),
+                        "decision_quality": row.get("decision_quality"),
+                        "median_latency_s": row.get("median_latency_s"),
+                        "evaluated_at": row.get("evaluated_at"),
+                        "source": "data/rsi_runs.csv",
+                    })
+        return {
+            "status": "unavailable",
+            "error": str(error),
+            "runs": [],
+            "csv_fallback": csv_runs,
+            "prime_eval": json.loads(LATEST_RSI_EVAL_JSON.read_text())
+            if LATEST_RSI_EVAL_JSON.exists() else None,
+        }
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -273,6 +367,17 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"data_status": "unavailable", "error": str(error), "listings": []}, 503)
             return
 
+        if parsed.path == "/api/autoresearch-experiments":
+            try:
+                self.send_json(autoresearch_experiments())
+            except Exception as error:
+                self.send_json({"error": str(error), "experiments": []}, 503)
+            return
+
+        if parsed.path == "/api/supabase-rsi-runs":
+            self.send_json(try_supabase_rsi_runs())
+            return
+
         if parsed.path == "/api/improvement":
             if not RSI_RUNS_CSV.exists():
                 self.send_json({
@@ -299,6 +404,13 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(rsi_operations())
             except Exception as error:
                 self.send_json({"status": "invalid", "error": str(error)}, 422)
+            return
+
+        if parsed.path == "/api/rsi-ideas":
+            try:
+                self.send_json(rsi_idea_memory())
+            except Exception as error:
+                self.send_json({"status": "unavailable", "error": str(error), "ideas": []}, 503)
             return
 
         if parsed.path == "/api/discord-rsi":

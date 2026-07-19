@@ -30,8 +30,8 @@ h1 { font-size:1.25rem; margin:.2rem 0 .1rem; } .sub { color:var(--muted); font-
   <div class="card">
     <h2>Scoreboard</h2>
     <div id="stats">loading…</div>
-    <h2 style="margin-top:1rem">Accuracy over cycles</h2>
-    <canvas id="trend" width="320" height="90"></canvas>
+    <h2 style="margin-top:1rem">Accuracy <span style="color:var(--amber)">━</span> over cycles · retrieval time <span style="color:var(--cyan)">▨</span></h2>
+    <canvas id="trend" width="320" height="120"></canvas>
     <h2 style="margin-top:1rem">Recent cycles</h2>
     <div id="log"></div>
   </div>
@@ -57,14 +57,31 @@ function radar(cv,entry,color){
     c.beginPath();c.arc(cx+r*Math.cos(a),cy+r*Math.sin(a),3.5,0,7);c.fillStyle=color;c.fill();});
 }
 function trend(cv,hist){
-  const c=cv.getContext("2d"),W=cv.width,H=cv.height;c.clearRect(0,0,W,H);
-  const pts=hist.map(e=>e.accuracy);if(!pts.length)return;
-  const min=Math.min(...pts,0.3),max=Math.max(...pts,0.8);
-  c.strokeStyle=css("--cyan");c.lineWidth=2;c.beginPath();
-  pts.forEach((v,i)=>{const x=8+(W-16)*i/Math.max(1,pts.length-1),y=H-8-(H-16)*(v-min)/(max-min||1);
-    c[i?"lineTo":"moveTo"](x,y);});c.stroke();
-  const last=pts[pts.length-1],x=8+(W-16),y=H-8-(H-16)*(last-min)/(max-min||1);
-  c.beginPath();c.arc(x-0.01,y,4,0,7);c.fillStyle=css("--amber");c.fill();
+  const c=cv.getContext("2d"),W=cv.width,H=cv.height,PL=24,PB=16,PT=8,PR=8;c.clearRect(0,0,W,H);
+  if(!hist.length)return;
+  const acc=hist.map(e=>e.accuracy), lat=hist.map(e=>e.retrieval_s||0);
+  const aMin=Math.min(...acc,0.3),aMax=Math.max(...acc,0.75);
+  const lMax=Math.max(...lat,10);
+  const X=i=>PL+(W-PL-PR)*i/Math.max(1,acc.length-1);
+  const Ya=v=>H-PB-(H-PB-PT)*(v-aMin)/(aMax-aMin||1);
+  const Yl=v=>H-PB-(H-PB-PT)*(v/lMax);
+  // gridlines + y labels (accuracy)
+  c.strokeStyle=css("--line");c.fillStyle=css("--muted");c.font="9px ui-monospace,monospace";c.textAlign="right";
+  [aMin,(aMin+aMax)/2,aMax].forEach(v=>{const y=Ya(v);c.beginPath();c.moveTo(PL,y);c.lineTo(W-PR,y);c.stroke();
+    c.fillText(v.toFixed(2),PL-3,y+3);});
+  // retrieval-time band (the "time display") as a faint area
+  c.beginPath();c.moveTo(X(0),H-PB);
+  lat.forEach((v,i)=>c.lineTo(X(i),Yl(v)));c.lineTo(X(lat.length-1),H-PB);c.closePath();
+  c.globalAlpha=.12;c.fillStyle=css("--cyan");c.fill();c.globalAlpha=1;
+  // accuracy line — the one that "keeps moving and dipping"
+  c.strokeStyle=css("--amber");c.lineWidth=2;c.beginPath();
+  acc.forEach((v,i)=>c[i?"lineTo":"moveTo"](X(i),Ya(v)));c.stroke();
+  // dots: promotions filled, candidates hollow
+  acc.forEach((v,i)=>{c.beginPath();c.arc(X(i),Ya(v),3,0,7);
+    if(hist[i].role==="champion"){c.fillStyle=css("--good");c.fill();}
+    else{c.fillStyle=css("--bg");c.fill();c.strokeStyle=css("--amber");c.lineWidth=1.5;c.stroke();}});
+  // x label
+  c.fillStyle=css("--muted");c.textAlign="center";c.fillText("cycles over time →",W/2,H-3);
 }
 const API=(location.hostname.endsWith("railway.app")||location.protocol==="https:")?location.origin:"";
 async function refresh(){
@@ -72,6 +89,8 @@ async function refresh(){
   // Prefer the live coordinator API; fall back to the committed file for local use.
   try{ hist=await (await fetch(API+"/api/radar?t="+Date.now())).json(); }catch(e){}
   if(!hist.length){ try{ hist=await (await fetch("../data/radar_snapshots.json?t="+Date.now())).json(); }catch(e){} }
+  // Robust to any malformed rows in an append-only store: keep only real snapshots.
+  hist=(Array.isArray(hist)?hist:[]).filter(e=>e&&typeof e.accuracy==="number");
   if(!hist.length){document.getElementById("stats").textContent="no snapshots yet — loop warming up";return;}
   const before=hist[0], champs=hist.filter(e=>e.role==="champion"), after=champs[champs.length-1]||before;
   radar(document.getElementById("before"),before,css("--muted"));

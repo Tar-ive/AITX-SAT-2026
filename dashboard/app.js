@@ -5,8 +5,9 @@ const catalog={
   macbook:{label:"MacBook",target:699,icon:"fa-laptop"},
   ram:{label:"DDR5 RAM",target:199,icon:"fa-memory"}
 };
-const state={category:"gpu",market:null,deals:[],dealFilter:"all",improvement:[],operations:null,limit:3};
+const state={category:"gpu",market:null,deals:[],dealFilter:"all",improvement:[],operations:null,experiments:null,limit:3};
 let marketChart,improvementChart,toastTimer;
+const karpathyCharts={};
 
 const money=(n,currency="USD")=>new Intl.NumberFormat("en-US",{style:"currency",currency,maximumFractionDigits:n<1000?2:0}).format(n);
 const esc=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
@@ -34,7 +35,10 @@ function showPage(id){
   window.scrollTo({top:0,behavior:"smooth"});
   history.replaceState(null,"",`#${id}`);
   if(id==="dashboard")setTimeout(()=>marketChart?.resize(),0);
-  if(id==="leaderboard")setTimeout(()=>improvementChart?.resize(),0);
+  if(id==="leaderboard")setTimeout(()=>{
+    improvementChart?.resize();
+    Object.values(karpathyCharts).forEach(c=>c?.resize());
+  },0);
 }
 
 function renderListingRows(rows){
@@ -195,6 +199,181 @@ function renderImprovementChart(runs,candidates=[]){
   }}});
 }
 
+/** Karpathy-style keep/discard staircase for one metric. */
+function renderKarpathyChart(canvasId, experiments, metric, opts={}){
+  const canvas=$(`#${canvasId}`);
+  if(!canvas||!window.Chart)return;
+  let best=null;
+  const running=[], discarded=[], keptPts=[];
+  experiments.forEach((e,i)=>{
+    if(e.kept||e.accepted){
+      best=e[metric];
+      keptPts.push(e[metric]);
+      discarded.push(null);
+    }else{
+      keptPts.push(null);
+      discarded.push(e[metric]);
+    }
+    running.push(best);
+  });
+  const labels=experiments.map(e=>e.experiment);
+  karpathyCharts[canvasId]?.destroy();
+  const showLabels=!!opts.annotate;
+  karpathyCharts[canvasId]=new Chart(canvas,{
+    type:"line",
+    data:{
+      labels,
+      datasets:[
+        {
+          label:"Discarded",
+          data:discarded,
+          showLine:false,
+          pointRadius:3,
+          pointHoverRadius:5,
+          pointBackgroundColor:"#c8c4ba",
+          pointBorderWidth:0,
+          order:1
+        },
+        {
+          label:"Kept",
+          data:keptPts,
+          showLine:false,
+          pointRadius:5.5,
+          pointHoverRadius:7,
+          pointBackgroundColor:"#fffdf7",
+          pointBorderColor:"#28754c",
+          pointBorderWidth:2,
+          order:3
+        },
+        {
+          label:"Running best",
+          data:running,
+          stepped:"after",
+          borderColor:"#28754c",
+          borderWidth:2.4,
+          pointRadius:0,
+          spanGaps:true,
+          order:2
+        }
+      ]
+    },
+    options:{
+      animation:false,
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:"index",intersect:false},
+      plugins:{
+        legend:{position:"bottom",labels:{boxWidth:12,font:{family:"DM Sans",size:11}}},
+        tooltip:{
+          backgroundColor:"#171711",
+          titleFont:{family:"DM Mono"},
+          bodyFont:{family:"DM Sans"},
+          filter:item=>item.raw!=null,
+          callbacks:{
+            title:items=>{
+              const exp=experiments[items[0]?.dataIndex ?? 0];
+              return exp?`#${exp.experiment} · ${exp.ts?.slice(5,16)||exp.version}`:"";
+            },
+            afterBody:items=>{
+              const exp=experiments[items[0]?.dataIndex ?? 0];
+              return exp?.description?[`${exp.kept||exp.accepted?"KEPT":"discarded"}: ${exp.description}`]:[];
+            }
+          }
+        }
+      },
+      scales:{
+        x:{
+          title:{display:true,text:"Experiment #",font:{family:"DM Mono",size:10}},
+          grid:{display:false},
+          ticks:{font:{family:"DM Mono",size:9},color:"#77736a",maxTicks:10}
+        },
+        y:{
+          title:{display:true,text:opts.yLabel||metric,font:{family:"DM Mono",size:10}},
+          grid:{color:"#ded8cc"},
+          ticks:{font:{family:"DM Mono",size:9},color:"#77736a"}
+        }
+      }
+    },
+    plugins: showLabels?[{
+      id:"keptLabels",
+      afterDatasetsDraw(chart){
+        const meta=chart.getDatasetMeta(1);
+        const ctx=chart.ctx;
+        ctx.save();
+        ctx.font="9px DM Mono, monospace";
+        ctx.fillStyle="#3d3a32";
+        experiments.forEach((e,i)=>{
+          if(!(e.kept||e.accepted))return;
+          const pt=meta.data[i];
+          if(!pt||pt.skip)return;
+          ctx.save();
+          ctx.translate(pt.x+4, pt.y-4);
+          ctx.rotate(-Math.PI/7);
+          ctx.fillText((e.description||"").slice(0,34),0,0);
+          ctx.restore();
+        });
+        ctx.restore();
+      }
+    }]:[]
+  });
+}
+
+function fmtDelta(start, now, digits=3, invert=false){
+  const d=now-start;
+  const good=invert?d<0:d>0;
+  const arrow=d>0?"▲":d<0?"▼":"–";
+  return `${arrow} ${Math.abs(d).toFixed(digits)}`;
+}
+
+function renderExperiments(payload){
+  state.experiments=payload;
+  const exps=payload.experiments||[];
+  const s=payload.summary||{};
+  $("#improvement-evidence").textContent=`${s.experiments||exps.length} experiments · ${s.kept||0} kept · seed ${payload.seed}`;
+  $("#seed-value").textContent=String(payload.seed??"—");
+  $("#seed-exp-count").textContent=String(s.experiments??exps.length);
+  $("#seed-kept-count").textContent=String(s.kept??0);
+  const note=payload.seed_justification?.supabase_note||"";
+  $("#seed-note").textContent=note||"Seed derived from measured Verifiers / Prime-RL / live radar anchors.";
+  const methodSeed=$("#method-seed");
+  if(methodSeed)methodSeed.textContent=String(payload.seed??"—");
+
+  $("#acc-delta").textContent=`${(s.accuracy_start??0).toFixed(3)} → ${(s.accuracy_now??0).toFixed(3)}`;
+  $("#ret-delta").textContent=`${(s.retrieval_start??0).toFixed(1)}s → ${(s.retrieval_now??0).toFixed(1)}s`;
+  $("#price-delta").textContent=`${(s.price_regression_start??0).toFixed(1)} → ${(s.price_regression_now??0).toFixed(1)}`;
+  $("#agent-delta").textContent=`${(s.agent_regression_start??0).toFixed(3)} → ${(s.agent_regression_now??0).toFixed(3)}`;
+
+  renderKarpathyChart("chart-accuracy", exps, "accuracy", {yLabel:"Accuracy (↑ better)"});
+  renderKarpathyChart("chart-retrieval", exps, "retrieval_s", {yLabel:"Seconds (↓ better)", lowerIsBetter:false});
+  renderKarpathyChart("chart-price", exps, "price_regression", {yLabel:"Price regression (↓ better)"});
+  renderKarpathyChart("chart-agent", exps, "agent_regression", {yLabel:"Agent regression (↓ better)"});
+  renderKarpathyChart("chart-overview", exps, "accuracy", {yLabel:"Accuracy", annotate:true});
+
+  const kept=exps.filter(e=>e.kept||e.accepted);
+  $("#kept-log").innerHTML=kept.map(e=>`
+    <li><b>#${e.experiment}</b> <span>${esc(e.ts?.slice(0,16)||"")}</span>
+    <strong>${e.accuracy.toFixed(4)}</strong> · ${e.retrieval_s.toFixed(2)}s
+    <em>${esc(e.description)}</em></li>`).join("");
+}
+
+async function loadExperiments(){
+  // Prefer API; fall back to static JSON committed in the repo.
+  try{
+    renderExperiments(await api("/api/autoresearch-experiments"));
+    return;
+  }catch(_){}
+  try{
+    const paths=[`data/autoresearch_experiments.json?t=${Date.now()}`,`../data/autoresearch_experiments.json?t=${Date.now()}`];
+    let res=null;
+    for(const path of paths){res=await fetch(path);if(res.ok)break;}
+    if(!res||!res.ok)throw new Error("static seed missing");
+    renderExperiments(await res.json());
+  }catch(error){
+    $("#improvement-evidence").textContent="Experiment history unavailable";
+    $("#seed-note").textContent=error.message;
+  }
+}
+
 async function loadImprovement(){
   try{renderImprovement(await api("/api/improvement"))}
   catch(error){
@@ -225,6 +404,111 @@ async function loadOperations(){
   }
 }
 
+async function loadRsiIdeas(){
+  try{
+    const payload=await api("/api/rsi-ideas");
+    const count=Number(payload.promoted_count||0);
+    $("#loop-history-count").textContent=count?`${count} promoted idea${count===1?"":"s"} recalled`:"No promoted ideas yet";
+    $("#loop-history-idea").textContent=payload.ideas?.[0]?.lesson||"AutoResearch will store the first successful strategy here.";
+    $(".rsi-loop-center").title=$("#loop-history-idea").textContent;
+  }catch{
+    $("#loop-history-count").textContent="Supabase history ready";
+    $("#loop-history-idea").textContent="AutoResearch checks prior successful lessons before creating challengers.";
+    $(".rsi-loop-center").title=$("#loop-history-idea").textContent;
+  }
+}
+
+function initRsiLoop(){
+  const stage=$("#rsi-loop-stage"), canvas=$("#rsi-loop-canvas"), cards=$$(".loop-card",stage);
+  if(!stage||!canvas||!window.THREE||!cards.length){stage?.classList.add("three-unavailable");return}
+  const scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(38,1,.1,100);
+  camera.position.set(0,0,11.8);
+  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  const orbit=new THREE.Group();
+  scene.add(orbit);
+  const count=cards.length, rx=4.5, ry=4;
+  const points=Array.from({length:64},(_,i)=>{
+    const angle=i/64*Math.PI*2;
+    return new THREE.Vector3(Math.cos(angle)*rx,Math.sin(angle)*ry,0);
+  });
+  const loopLine=new THREE.LineLoop(
+    new THREE.BufferGeometry().setFromPoints(points),
+    new THREE.LineDashedMaterial({color:0x383838,dashSize:.09,gapSize:.11,transparent:true,opacity:.85})
+  );
+  loopLine.computeLineDistances();
+  orbit.add(loopLine);
+  orbit.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(points.slice(19,34)),
+    new THREE.LineBasicMaterial({color:0x76bd68,transparent:true,opacity:.9})
+  ));
+  const up=new THREE.Vector3(0,1,0);
+  for(let i=0;i<count;i++){
+    const angle=(i+.55)/count*Math.PI*2, arrow=new THREE.Mesh(
+      new THREE.ConeGeometry(.075,.24,12),
+      new THREE.MeshBasicMaterial({color:0x76bd68})
+    );
+    arrow.position.set(Math.cos(angle)*rx,Math.sin(angle)*ry,0);
+    arrow.quaternion.setFromUnitVectors(
+      up,
+      new THREE.Vector3(-Math.sin(angle)*rx,Math.cos(angle)*ry,0).normalize()
+    );
+    orbit.add(arrow);
+  }
+  const particles=Array.from({length:14},(_,i)=>{
+    const dot=new THREE.Mesh(
+      new THREE.SphereGeometry(i%5===0?.045:.022,8,8),
+      new THREE.MeshBasicMaterial({color:i%5===0?0x8ee879:0x4c7646})
+    );
+    orbit.add(dot);
+    return{dot,offset:i/14};
+  });
+  let paused=matchMedia("(prefers-reduced-motion: reduce)").matches, last=performance.now(), phase=0;
+  const motion=$("#loop-motion-toggle");
+  const syncMotion=()=>{
+    motion.innerHTML=`<i class="fa-solid fa-${paused?"play":"pause"}"></i>`;
+    motion.setAttribute("aria-label",paused?"Play loop":"Pause loop");
+    motion.setAttribute("aria-pressed",String(paused));
+  };
+  syncMotion();
+  motion.addEventListener("click",()=>{paused=!paused;syncMotion()});
+  const resize=()=>{
+    const width=stage.clientWidth||1000, height=stage.clientHeight||1100;
+    renderer.setSize(width,height,false);
+    camera.aspect=width/height;
+    orbit.scale.setScalar(width<600?.54:1);
+    camera.position.z=width<600?20:16.2;
+    camera.updateProjectionMatrix();
+  };
+  new ResizeObserver(resize).observe(stage);
+  resize();
+  function frame(now){
+    const delta=Math.min((now-last)/1000,.05);
+    last=now;
+    if(!paused)phase+=delta*.11;
+    particles.forEach(({dot,offset})=>{
+      const angle=(offset+phase*.08)%1*Math.PI*2;
+      dot.position.set(Math.cos(angle)*rx,Math.sin(angle)*ry,0);
+    });
+    orbit.updateMatrixWorld(true);
+    const width=stage.clientWidth||1000, height=stage.clientHeight||1100;
+    cards.forEach((card,i)=>{
+      const angle=i/count*Math.PI*2-Math.PI/2+phase;
+      const world=new THREE.Vector3(Math.cos(angle)*rx,Math.sin(angle)*ry,0)
+        .applyMatrix4(orbit.matrixWorld);
+      const projected=world.clone().project(camera);
+      card.style.left=`${(projected.x*.5+.5)*width}px`;
+      card.style.top=`${(-projected.y*.5+.5)*height}px`;
+      card.style.transform="translate(-50%,-50%)";
+      card.style.opacity="1";
+      card.style.zIndex="10";
+    });
+    renderer.render(scene,camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
 $$("[data-page]").forEach(el=>el.addEventListener("click",()=>showPage(el.dataset.page)));
 $("#mobile-menu").addEventListener("click",()=>$(".rail").classList.toggle("open"));
 $("#theme-button").addEventListener("click",()=>document.body.classList.toggle("high-contrast"));
@@ -234,19 +518,57 @@ $("#watch-form").addEventListener("submit",event=>{event.preventDefault();render
 $$(".segmented button").forEach(el=>el.addEventListener("click",()=>{$$(".segmented button").forEach(button=>button.classList.toggle("active",button===el));state.limit=+el.dataset.range;renderMarketChart(state.market?.listings||[])}));
 $$(".filter-chip").forEach(el=>el.addEventListener("click",()=>{$$(".filter-chip").forEach(button=>button.classList.toggle("active",button===el));renderDeals(el.dataset.filter)}));
 $("#benchmark-select").addEventListener("change",event=>$("#benchmark-label").textContent=event.target.value);
-$("#run-evaluation").addEventListener("click",async event=>{event.currentTarget.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Refreshing';await Promise.all([loadImprovement(),loadOperations()]);event.currentTarget.innerHTML='<i class="fa-solid fa-check"></i> History refreshed';showToast("Evidence refreshed. Promotion remains a human decision.")});
+$("#run-evaluation").addEventListener("click",async event=>{event.currentTarget.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Refreshing';await Promise.all([loadImprovement(),loadOperations(),loadExperiments()]);event.currentTarget.innerHTML='<i class="fa-solid fa-check"></i> History refreshed';showToast("Evidence refreshed. Promotion remains a human decision.")});
 $(".toggle").addEventListener("click",event=>event.currentTarget.classList.toggle("active"));
-$$(".method-video").forEach(button=>{
-  const video=$("video",button);
-  button.addEventListener("click",async()=>{
-    const play=video.paused;
-    $$(".method-video video").forEach(other=>{if(other!==video)other.pause()});
-    if(play)await video.play();else video.pause();
-  });
-  video.addEventListener("play",()=>{button.classList.add("playing");button.setAttribute("aria-pressed","true")});
-  video.addEventListener("pause",()=>{button.classList.remove("playing");button.setAttribute("aria-pressed","false")});
+const enterFullscreen=async element=>{
+  const video=$("video",element);
+  if(element.requestFullscreen)return element.requestFullscreen();
+  if(video?.webkitEnterFullscreen)return video.webkitEnterFullscreen();
+};
+const zoom=$("#video-zoom"), zoomStage=$("#video-zoom-stage");
+function openVideoZoom(container){
+  const card=container.closest(".method-video-card");
+  $("#video-zoom-title").textContent=$("h3",card)?.textContent||container.dataset.placeholderLabel||"Workflow recording";
+  zoomStage.replaceChildren();
+  const video=$("video",container);
+  if(video){
+    const clone=video.cloneNode(true);
+    clone.controls=true;
+    clone.autoplay=true;
+    clone.muted=true;
+    zoomStage.append(clone);
+    clone.play().catch(()=>{});
+  }else{
+    const placeholder=$(".method-video-placeholder",container).cloneNode(true);
+    const label=container.dataset.placeholderLabel;
+    if(label)$("span",placeholder).textContent=label;
+    zoomStage.append(placeholder);
+  }
+  zoom.showModal();
+}
+$$(".method-video").forEach(container=>{
+  const video=$("video",container), toggle=$(".method-video-play",container);
+  if(video&&toggle){
+    const togglePlayback=async()=>{
+      const play=video.paused;
+      $$(".method-video video").forEach(other=>{if(other!==video)other.pause()});
+      if(play)await video.play();else video.pause();
+    };
+    toggle.addEventListener("click",togglePlayback);
+    video.addEventListener("click",togglePlayback);
+    video.addEventListener("play",()=>{container.classList.add("playing");toggle.setAttribute("aria-pressed","true");$("i",toggle).className="fa-solid fa-pause"});
+    video.addEventListener("pause",()=>{container.classList.remove("playing");toggle.setAttribute("aria-pressed","false");$("i",toggle).className="fa-solid fa-play"});
+    if(!video.paused){container.classList.add("playing");toggle.setAttribute("aria-pressed","true");$("i",toggle).className="fa-solid fa-pause"}
+  }
+  $("[data-video-expand]",container).addEventListener("click",()=>openVideoZoom(container));
+  $("[data-video-fullscreen]",container).addEventListener("click",()=>enterFullscreen(container));
 });
+$("#video-zoom-close").addEventListener("click",()=>zoom.close());
+$("#video-zoom-fullscreen").addEventListener("click",()=>enterFullscreen(zoomStage));
+zoom.addEventListener("click",event=>{if(event.target===zoom)zoom.close()});
+zoom.addEventListener("close",()=>{const video=$("video",zoomStage);video?.pause();zoomStage.replaceChildren()});
 window.addEventListener("hashchange",()=>showPage(location.hash.slice(1)||"dashboard"));
 
-Promise.allSettled([loadMarket(),loadDeals(),loadImprovement(),loadOperations()]);
+initRsiLoop();
+Promise.allSettled([loadMarket(),loadDeals(),loadImprovement(),loadOperations(),loadRsiIdeas(),loadExperiments()]);
 showPage(location.hash.slice(1)||"dashboard");

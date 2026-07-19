@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.git
+.vercel
+.codex
+design-qa*
+docs
+environments
+benchmarks
+infra
+output
+outputs
+identity
+supabase
+dashboard/demos

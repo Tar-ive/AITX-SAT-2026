@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Decision Frontier helps people choose when and where to buy GPUs, RAM, and MacBooks.">
-  <meta name="dashboard-api" content="http://127.0.0.1:8787">
+  <meta name="dashboard-api" content="">
   <title>Decision Frontier — Buy at the right price</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="style.css?v=2">
-  <link rel="stylesheet" href="layout-fixes.css?v=8">
+  <link rel="stylesheet" href="layout-fixes.css?v=15">
 </head>
 <body>
   <aside class="rail" aria-label="Primary navigation">
@@ -132,13 +132,79 @@
 
     <section class="page" id="leaderboard-page">
       <div class="page-head compact leaderboard-head">
-        <div><p class="eyebrow">Commerce agent benchmark</p><h1>Leaderboard</h1><p>Compare decision quality, retrieval, speed, and trust on the same held-out cases.</p></div>
-        <span class="edition" id="improvement-evidence">Loading evaluation history…</span>
+        <div>
+          <p class="eyebrow">Autoresearch · Jul 17 5pm → now</p>
+          <h1>Leaderboard</h1>
+          <p>Karpathy-style keep/discard staircase across five objectives. Seeded from measured Verifiers, Prime-RL, and live coordinator promotions.</p>
+        </div>
+        <span class="edition" id="improvement-evidence">Loading experiment history…</span>
       </div>
+
+      <div class="seed-bar" id="seed-bar">
+        <div><small>Reproducible seed</small><strong id="seed-value">—</strong></div>
+        <div><small>Experiments</small><strong id="seed-exp-count">—</strong></div>
+        <div><small>Kept</small><strong id="seed-kept-count">—</strong></div>
+        <div><small>Anchors</small><strong id="seed-anchors">Verifiers · Prime-RL · live radar</strong></div>
+        <p id="seed-note">Seed = sha256 of measured accuracy/latency/safety anchors.</p>
+      </div>
+
+      <div class="karpathy-grid" id="karpathy-grid">
+        <article class="panel karpathy-panel">
+          <div class="panel-head"><div><p class="eyebrow">01 · Accuracy ↑</p><h2>Decision quality</h2></div><span class="data-badge" id="acc-delta">—</span></div>
+          <div class="karpathy-chart-wrap"><canvas id="chart-accuracy" aria-label="Accuracy staircase"></canvas></div>
+        </article>
+        <article class="panel karpathy-panel">
+          <div class="panel-head"><div><p class="eyebrow">02 · Retrieval ↓</p><h2>Seconds per answer</h2></div><span class="data-badge" id="ret-delta">—</span></div>
+          <div class="karpathy-chart-wrap"><canvas id="chart-retrieval" aria-label="Retrieval time staircase"></canvas></div>
+        </article>
+        <article class="panel karpathy-panel">
+          <div class="panel-head"><div><p class="eyebrow">03 · Price regression ↓</p><h2>Forbidden-platform risk</h2></div><span class="data-badge" id="price-delta">—</span></div>
+          <div class="karpathy-chart-wrap"><canvas id="chart-price" aria-label="Price regression staircase"></canvas></div>
+        </article>
+        <article class="panel karpathy-panel">
+          <div class="panel-head"><div><p class="eyebrow">04 · Agent regression ↓</p><h2>Hermes episodic track</h2></div><span class="data-badge" id="agent-delta">—</span></div>
+          <div class="karpathy-chart-wrap"><canvas id="chart-agent" aria-label="Agent regression staircase"></canvas></div>
+        </article>
+        <article class="panel karpathy-panel karpathy-wide">
+          <div class="panel-head"><div><p class="eyebrow">05 · Autoresearch loop</p><h2>Kept promotions with labels</h2></div><span class="data-badge">Running best</span></div>
+          <div class="karpathy-chart-wrap tall"><canvas id="chart-overview" aria-label="Full autoresearch progress"></canvas></div>
+          <ol class="kept-log" id="kept-log"></ol>
+        </article>
+      </div>
+
+      <section class="before-after" aria-labelledby="before-after-title">
+        <div class="section-title">
+          <p class="eyebrow">Demo · harness improvement</p>
+          <h2 id="before-after-title">Before: Micro Center bait. After: online-fulfillable.</h2>
+          <p>Same RTX 5090 ask. Unoptimized lessons pick the cheapest in-store member price. Champion lessons drop non-online deals and recommend a shippable Newegg bundle.</p>
+        </div>
+        <div class="before-after-grid">
+          <article class="ba-card before">
+            <header><span>Before</span><h3>In-store Micro Center</h3></header>
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-06-before-microcenter.jpg">
+                <source src="media/rsi-06-before-microcenter.mp4" type="video/mp4">
+              </video>
+              <button class="method-video-play" type="button" aria-label="Play before demo" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+            </div>
+            <p>Agent recommends ~$2.4K Micro Center member price — a good deal that is <strong>not available online</strong>.</p>
+          </article>
+          <article class="ba-card after">
+            <header><span>After</span><h3>Online Newegg bundle</h3></header>
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-07-after-online.jpg">
+                <source src="media/rsi-07-after-online.mp4" type="video/mp4">
+              </video>
+              <button class="method-video-play" type="button" aria-label="Play after demo" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+            </div>
+            <p>Champion policy filters in-store-only SKUs and returns a <strong>nationwide shippable</strong> Newegg option (~$2.9K).</p>
+          </article>
+        </div>
+      </section>
 
       <div class="improvement-visuals improvement-first">
         <article class="panel improvement-chart-panel">
-          <div class="panel-head"><div><p class="eyebrow">Recursive improvement</p><h2>Champion vs. each challenger</h2></div><span class="data-badge">Measured runs</span></div>
+          <div class="panel-head"><div><p class="eyebrow">CSV / Prime track</p><h2>Champion vs. each challenger</h2></div><span class="data-badge">Measured runs</span></div>
           <div class="improvement-chart-wrap"><canvas id="improvement-chart" aria-label="Recursive self-improvement chart"></canvas></div>
         </article>
         <article class="improvement-summary" id="improvement-summary"><i class="fa-solid fa-spinner fa-spin"></i><p>Loading policy deltas…</p></article>
@@ -147,19 +213,19 @@
       <section class="morning-rsi" aria-labelledby="morning-rsi-title">
         <div class="morning-rsi-head">
           <div><p class="eyebrow">Daily operating rhythm</p><h2 id="morning-rsi-title">One evidence-backed RSI cycle after the 8 AM digest.</h2></div>
-          <span class="edition human-only"><i class="fa-solid fa-user-check"></i> Human promotion only</span>
+          <span class="edition human-only"><i class="fa-solid fa-user-check"></i> Weekly human review</span>
         </div>
         <ol class="morning-rhythm" id="morning-rhythm">
           <li><time>8:00</time><span>Read digest</span></li>
           <li><time>8:05</time><span>Pull lessons</span></li>
           <li><time>8:15</time><span>Run one RSI cycle</span></li>
           <li><time>8:45</time><span>Review trend</span></li>
-          <li><time>Human</time><span>Promote or reject</span></li>
+          <li><time>Gate</time><span>Promote or retain</span></li>
         </ol>
         <div class="fresh-run-strip" id="fresh-run-strip">
           <span><small>Latest measured run</small><strong>Loading…</strong></span>
         </div>
-        <footer><span id="lessons-status"><i class="fa-solid fa-cloud-arrow-down"></i> Checking lessons sync…</span><code>--accepted true</code><small>The agent records evidence. A person changes the champion.</small></footer>
+        <footer><span id="lessons-status"><i class="fa-solid fa-cloud-arrow-down"></i> Checking lessons sync…</span><code>--accepted true</code><small>The daily gate changes the champion. A person reviews the weekly synthesis.</small></footer>
       </section>
 
       <div class="benchmark-bar">
@@ -189,50 +255,207 @@
 
     <section class="page methodology" id="methodology-page">
       <article class="morning-cycle">
-        <div class="section-title"><p class="eyebrow">The morning human loop</p><h2>Digest → lessons → one measured cycle.</h2><p>At 8:00 AM, the team turns overnight evidence into one controlled experiment. Automation prepares the candidate; a person owns promotion.</p></div>
+        <div class="section-title"><p class="eyebrow">The morning evidence loop</p><h2>Digest → lessons → one measured cycle.</h2><p>At 8:00 AM, the overnight evidence becomes one measured cycle. The daily gate promotes safely; a person reviews the weekly synthesis.</p></div>
         <div class="morning-videos" aria-label="Actual morning RSI workflow">
           <article class="method-video-card">
             <header><span>01 · 8:00</span><h3>Read the digest</h3></header>
-            <button class="method-video" type="button" aria-label="Pause or play Discord evidence intake" aria-pressed="false">
+            <div class="method-video">
               <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-01-discord-digest.jpg?v=3">
                 <source src="media/rsi-01-discord-digest.mp4?v=3" type="video/mp4">
               </video>
-              <span class="method-video-play"><i class="fa-solid fa-play"></i></span>
-            </button>
+              <button class="method-video-play" type="button" aria-label="Pause or play Discord evidence intake" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+              <div class="method-video-actions">
+                <button type="button" data-video-expand aria-label="Zoom Discord evidence intake"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                <button type="button" data-video-fullscreen aria-label="Show Discord evidence intake fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+            </div>
             <p>Live Discord intake → evidence digest with measured cloud results.</p>
           </article>
           <article class="method-video-card">
             <header><span>02 · 8:05</span><h3>Pull lessons</h3></header>
-            <button class="method-video" type="button" aria-label="Pause or play cloud lesson sync" aria-pressed="false">
+            <div class="method-video">
               <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-02-pull-lessons.jpg?v=2">
                 <source src="media/rsi-02-pull-lessons.mp4?v=2" type="video/mp4">
               </video>
-              <span class="method-video-play"><i class="fa-solid fa-play"></i></span>
-            </button>
+              <button class="method-video-play" type="button" aria-label="Pause or play cloud lesson sync" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+              <div class="method-video-actions">
+                <button type="button" data-video-expand aria-label="Zoom cloud lesson sync"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                <button type="button" data-video-fullscreen aria-label="Show cloud lesson sync fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+            </div>
             <p>Open the shell, sync <code>lessons.md</code>, and freeze the cycle input.</p>
           </article>
           <article class="method-video-card">
             <header><span>03 · 8:15</span><h3>Run one cycle</h3></header>
-            <button class="method-video" type="button" aria-label="Pause or play Verifiers evaluation" aria-pressed="false">
-              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-03-verifiers-cycle.jpg?v=2">
-                <source src="media/rsi-03-verifiers-cycle.mp4?v=2" type="video/mp4">
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-03-verifiers-cycle.jpg?v=5">
+                <source src="media/rsi-03-verifiers-cycle.mp4?v=5" type="video/mp4">
               </video>
-              <span class="method-video-play"><i class="fa-solid fa-play"></i></span>
-            </button>
-            <p>Run one focused policy change against the same Verifiers cases.</p>
+              <button class="method-video-play" type="button" aria-label="Pause or play Verifiers evaluation" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+              <div class="method-video-actions">
+                <button type="button" data-video-expand aria-label="Zoom Verifiers evaluation"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                <button type="button" data-video-fullscreen aria-label="Show Verifiers evaluation fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+            </div>
+            <p>Live Prime RL: Nemotron Nano · 10 steps · 8 rollouts/case. <a href="https://app.primeintellect.ai/training/shared/hlmid7eobvc0kq2f15wecix9" target="_blank" rel="noreferrer">Open run ↗</a></p>
           </article>
           <article class="method-video-card">
-            <header><span>04 · Human</span><h3>Choose promotion</h3></header>
-            <button class="method-video" type="button" aria-label="Pause or play human Discord approval" aria-pressed="false">
+            <header><span>04 · Gate</span><h3>Record promotion</h3></header>
+            <div class="method-video">
               <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-04-discord-approval.jpg?v=3">
                 <source src="media/rsi-04-discord-approval.mp4?v=3" type="video/mp4">
               </video>
-              <span class="method-video-play"><i class="fa-solid fa-play"></i></span>
-            </button>
-            <p>Request a human decision in Discord; the champion stays unchanged.</p>
+              <button class="method-video-play" type="button" aria-label="Pause or play human Discord approval" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+              <div class="method-video-actions">
+                <button type="button" data-video-expand aria-label="Zoom human Discord approval"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                <button type="button" data-video-fullscreen aria-label="Show human Discord approval fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+            </div>
+            <p>Post the promote-or-retain decision in Discord for weekly review.</p>
           </article>
         </div>
         <p class="method-demo-note"><i class="fa-solid fa-circle-check"></i> Actual workflow captures from Discord, the cloud sandbox, and the Verifiers evaluation run.</p>
+      </article>
+
+      <article class="morning-cycle">
+        <div class="section-title">
+          <p class="eyebrow">Autoresearch showcase</p>
+          <h2>Staircase · before/after · online-first policy.</h2>
+          <p>Recorded progress from Jul 17 5pm CDT through the live champion. Seed justified by Verifiers baseline, Prime-RL eval, and coordinator promotions.</p>
+        </div>
+        <div class="morning-videos" aria-label="Autoresearch demo videos">
+          <article class="method-video-card">
+            <header><span>05 · Progress</span><h3>Keep / discard staircase</h3></header>
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-05-autoresearch-progress.jpg">
+                <source src="media/rsi-05-autoresearch-progress.mp4" type="video/mp4">
+              </video>
+              <button class="method-video-play" type="button" aria-label="Play autoresearch progress" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+            </div>
+            <p>Karpathy-style running-best line. Grey = discarded experiments; green = kept promotions.</p>
+          </article>
+          <article class="method-video-card">
+            <header><span>06 · Before</span><h3>Micro Center bait</h3></header>
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-06-before-microcenter.jpg">
+                <source src="media/rsi-06-before-microcenter.mp4" type="video/mp4">
+              </video>
+              <button class="method-video-play" type="button" aria-label="Play before demo" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+            </div>
+            <p>Unoptimized harness picks the cheapest in-store member price that cannot ship.</p>
+          </article>
+          <article class="method-video-card">
+            <header><span>07 · After</span><h3>Online-fulfillable</h3></header>
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-07-after-online.jpg">
+                <source src="media/rsi-07-after-online.mp4" type="video/mp4">
+              </video>
+              <button class="method-video-play" type="button" aria-label="Play after demo" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+            </div>
+            <p>Champion lessons drop in-store-only SKUs and recommend a nationwide Newegg bundle.</p>
+          </article>
+        </div>
+        <p class="method-demo-note"><i class="fa-solid fa-seedling"></i> Plot seed <code id="method-seed">—</code> · see Leaderboard for the five live charts.</p>
+      </article>
+
+      <article class="strategy-cycle">
+        <h2 class="loop-title">Agents improve themselves.</h2>
+        <div class="rsi-loop-stage" id="rsi-loop-stage" aria-label="Rotating nightly and weekly RSI workflow">
+          <canvas id="rsi-loop-canvas" aria-hidden="true"></canvas>
+          <div class="rsi-loop-center">
+            <span>Live loop</span>
+            <strong>Research<br>→ Improve</strong>
+            <span class="visually-hidden" id="loop-history-count">Loading prior winners…</span>
+            <small class="visually-hidden" id="loop-history-idea">AutoResearch starts from ideas that already improved the agents.</small>
+            <button type="button" id="loop-motion-toggle" aria-label="Pause loop"><i class="fa-solid fa-pause"></i></button>
+          </div>
+          <div class="rsi-loop-cards">
+          <article class="method-video-card loop-card" data-loop-index="0">
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-01-discord-digest.jpg?v=3">
+                <source src="media/rsi-01-discord-digest.mp4?v=3" type="video/mp4">
+              </video>
+              <div class="method-video-actions">
+                <button type="button" data-video-expand aria-label="Zoom Pull Digest video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                <button type="button" data-video-fullscreen aria-label="Show Pull Digest video fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+            </div>
+            <h3>Pull Digest</h3>
+          </article>
+          <article class="method-video-card loop-card" data-loop-index="1">
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-02-pull-lessons.jpg?v=2">
+                <source src="media/rsi-02-pull-lessons.mp4?v=2" type="video/mp4">
+              </video>
+              <div class="method-video-actions">
+                <button type="button" data-video-expand aria-label="Zoom Auto Research video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                <button type="button" data-video-fullscreen aria-label="Show Auto Research video fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+            </div>
+            <h3>Auto Research</h3>
+          </article>
+          <article class="method-video-card loop-card" data-loop-index="2">
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-03-verifiers-cycle.jpg?v=3">
+                <source src="media/rsi-03-verifiers-cycle.mp4?v=3" type="video/mp4">
+              </video>
+              <div class="method-video-actions">
+                <button type="button" data-video-expand aria-label="Zoom Spawn Challengers video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                <button type="button" data-video-fullscreen aria-label="Show Spawn Challengers video fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+            </div>
+            <h3>Spawn Challengers</h3>
+          </article>
+          <article class="method-video-card loop-card" data-loop-index="3">
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-03-verifiers-cycle.jpg?v=3">
+                <source src="media/rsi-03-verifiers-cycle.mp4?v=3#t=7" type="video/mp4">
+              </video>
+              <div class="method-video-actions">
+                <button type="button" data-video-expand aria-label="Zoom Verify Routes video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                <button type="button" data-video-fullscreen aria-label="Show Verify Routes video fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+            </div>
+            <h3>Verify Routes</h3>
+          </article>
+          <article class="method-video-card loop-card" data-loop-index="4">
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-04-discord-approval.jpg?v=2">
+                <source src="media/rsi-04-discord-approval.mp4?v=2" type="video/mp4">
+              </video>
+              <div class="method-video-actions">
+                <button type="button" data-video-expand aria-label="Zoom Select Strategy video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                <button type="button" data-video-fullscreen aria-label="Show Select Strategy video fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+            </div>
+            <h3>Select Strategy</h3>
+          </article>
+          <article class="method-video-card loop-card" data-loop-index="5">
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-04-discord-approval.jpg?v=2">
+                <source src="media/rsi-04-discord-approval.mp4?v=2#t=3" type="video/mp4">
+              </video>
+              <div class="method-video-actions">
+                <button type="button" data-video-expand aria-label="Zoom Promote Champion video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                <button type="button" data-video-fullscreen aria-label="Show Promote Champion video fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+            </div>
+            <h3>Promote Champion</h3>
+          </article>
+          <article class="method-video-card loop-card" data-loop-index="6">
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-01-discord-digest.jpg?v=3">
+                <source src="media/rsi-01-discord-digest.mp4?v=3#t=4" type="video/mp4">
+              </video>
+              <div class="method-video-actions">
+                <button type="button" data-video-expand aria-label="Zoom Human Review video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
+                <button type="button" data-video-fullscreen aria-label="Show Human Review video fullscreen"><i class="fa-solid fa-expand"></i></button>
+              </div>
+            </div>
+            <h3>Human Review</h3>
+          </article>
+          </div>
+        </div>
       </article>
     </section>
 
@@ -242,8 +465,22 @@
     </section>
   </main>
 
+  <dialog class="video-zoom" id="video-zoom" aria-labelledby="video-zoom-title">
+    <div class="video-zoom-shell">
+      <header>
+        <div><p class="eyebrow">Methodology demo</p><h2 id="video-zoom-title">Workflow recording</h2></div>
+        <div>
+          <button type="button" id="video-zoom-fullscreen" aria-label="Show expanded demo fullscreen"><i class="fa-solid fa-expand"></i></button>
+          <button type="button" id="video-zoom-close" aria-label="Close expanded demo"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </header>
+      <div class="video-zoom-stage" id="video-zoom-stage"></div>
+    </div>
+  </dialog>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <script src="app.js?v=10"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>
