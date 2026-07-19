@@ -163,3 +163,38 @@ body.focus-view .mobile-menu { display: block; }
   .video-zoom { width: calc(100vw - 20px); }
   .video-zoom-stage, .video-zoom-stage .method-video-placeholder { min-height: 55vh; }
 }
+
+/* Karpathy-style autoresearch leaderboard */
+.seed-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--ink);background:#fffdf7;margin-bottom:16px}
+.seed-bar>div{padding:14px 16px;border-right:1px solid var(--line)}
+.seed-bar>div:last-of-type{border-right:0}
+.seed-bar small{display:block;font:500 10px var(--mono);text-transform:uppercase;color:var(--muted);letter-spacing:.08em}
+.seed-bar strong{display:block;margin-top:4px;font:600 18px var(--mono)}
+.seed-bar p{grid-column:1/-1;margin:0;padding:10px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);background:var(--paper-2)}
+.karpathy-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px}
+.karpathy-panel .panel-head h2{font-size:20px}
+.karpathy-chart-wrap{height:260px;padding:12px 14px 8px}
+.karpathy-chart-wrap.tall{height:340px}
+.karpathy-wide{grid-column:1/-1}
+.kept-log{margin:0;padding:0 18px 16px;list-style:none;max-height:180px;overflow:auto;border-top:1px solid var(--line)}
+.kept-log li{display:grid;grid-template-columns:48px 110px 150px 1fr;gap:8px;align-items:baseline;padding:7px 0;border-bottom:1px dashed var(--line);font-size:11px}
+.kept-log b{font:600 11px var(--mono);color:var(--green)}
+.kept-log span{font:400 10px var(--mono);color:var(--muted)}
+.kept-log strong{font:600 11px var(--mono)}
+.kept-log em{font-style:normal;color:var(--ink)}
+.before-after{margin:8px 0 32px}
+.before-after-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+.ba-card{border:1px solid var(--ink);background:#fffdf7;overflow:hidden}
+.ba-card header{padding:16px 18px 12px}
+.ba-card header span{font:500 10px var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.ba-card.before header span{color:#a64c3c}
+.ba-card.after header span{color:var(--green)}
+.ba-card h3{margin:6px 0 0;font:600 24px var(--serif)}
+.ba-card>p{margin:0;padding:12px 18px 16px;font-size:12px;color:var(--muted);min-height:64px}
+.ba-card .method-video{aspect-ratio:4/5;border-block:1px solid var(--ink)}
+@media (max-width:900px){
+  .karpathy-grid,.before-after-grid,.seed-bar{grid-template-columns:1fr}
+  .seed-bar>div{border-right:0;border-bottom:1px solid var(--line)}
+  .kept-log li{grid-template-columns:40px 1fr;gap:4px}
+  .kept-log span,.kept-log strong{grid-column:2}
+}

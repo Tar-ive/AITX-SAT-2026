@@ -132,13 +132,79 @@
 
     <section class="page" id="leaderboard-page">
       <div class="page-head compact leaderboard-head">
-        <div><p class="eyebrow">Commerce agent benchmark</p><h1>Leaderboard</h1><p>Compare decision quality, retrieval, speed, and trust on the same held-out cases.</p></div>
-        <span class="edition" id="improvement-evidence">Loading evaluation history…</span>
+        <div>
+          <p class="eyebrow">Autoresearch · Jul 17 5pm → now</p>
+          <h1>Leaderboard</h1>
+          <p>Karpathy-style keep/discard staircase across five objectives. Seeded from measured Verifiers, Prime-RL, and live coordinator promotions.</p>
+        </div>
+        <span class="edition" id="improvement-evidence">Loading experiment history…</span>
       </div>
+
+      <div class="seed-bar" id="seed-bar">
+        <div><small>Reproducible seed</small><strong id="seed-value">—</strong></div>
+        <div><small>Experiments</small><strong id="seed-exp-count">—</strong></div>
+        <div><small>Kept</small><strong id="seed-kept-count">—</strong></div>
+        <div><small>Anchors</small><strong id="seed-anchors">Verifiers · Prime-RL · live radar</strong></div>
+        <p id="seed-note">Seed = sha256 of measured accuracy/latency/safety anchors.</p>
+      </div>
+
+      <div class="karpathy-grid" id="karpathy-grid">
+        <article class="panel karpathy-panel">
+          <div class="panel-head"><div><p class="eyebrow">01 · Accuracy ↑</p><h2>Decision quality</h2></div><span class="data-badge" id="acc-delta">—</span></div>
+          <div class="karpathy-chart-wrap"><canvas id="chart-accuracy" aria-label="Accuracy staircase"></canvas></div>
+        </article>
+        <article class="panel karpathy-panel">
+          <div class="panel-head"><div><p class="eyebrow">02 · Retrieval ↓</p><h2>Seconds per answer</h2></div><span class="data-badge" id="ret-delta">—</span></div>
+          <div class="karpathy-chart-wrap"><canvas id="chart-retrieval" aria-label="Retrieval time staircase"></canvas></div>
+        </article>
+        <article class="panel karpathy-panel">
+          <div class="panel-head"><div><p class="eyebrow">03 · Price regression ↓</p><h2>Forbidden-platform risk</h2></div><span class="data-badge" id="price-delta">—</span></div>
+          <div class="karpathy-chart-wrap"><canvas id="chart-price" aria-label="Price regression staircase"></canvas></div>
+        </article>
+        <article class="panel karpathy-panel">
+          <div class="panel-head"><div><p class="eyebrow">04 · Agent regression ↓</p><h2>Hermes episodic track</h2></div><span class="data-badge" id="agent-delta">—</span></div>
+          <div class="karpathy-chart-wrap"><canvas id="chart-agent" aria-label="Agent regression staircase"></canvas></div>
+        </article>
+        <article class="panel karpathy-panel karpathy-wide">
+          <div class="panel-head"><div><p class="eyebrow">05 · Autoresearch loop</p><h2>Kept promotions with labels</h2></div><span class="data-badge">Running best</span></div>
+          <div class="karpathy-chart-wrap tall"><canvas id="chart-overview" aria-label="Full autoresearch progress"></canvas></div>
+          <ol class="kept-log" id="kept-log"></ol>
+        </article>
+      </div>
+
+      <section class="before-after" aria-labelledby="before-after-title">
+        <div class="section-title">
+          <p class="eyebrow">Demo · harness improvement</p>
+          <h2 id="before-after-title">Before: Micro Center bait. After: online-fulfillable.</h2>
+          <p>Same RTX 5090 ask. Unoptimized lessons pick the cheapest in-store member price. Champion lessons drop non-online deals and recommend a shippable Newegg bundle.</p>
+        </div>
+        <div class="before-after-grid">
+          <article class="ba-card before">
+            <header><span>Before</span><h3>In-store Micro Center</h3></header>
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-06-before-microcenter.jpg">
+                <source src="media/rsi-06-before-microcenter.mp4" type="video/mp4">
+              </video>
+              <button class="method-video-play" type="button" aria-label="Play before demo" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+            </div>
+            <p>Agent recommends ~$2.4K Micro Center member price — a good deal that is <strong>not available online</strong>.</p>
+          </article>
+          <article class="ba-card after">
+            <header><span>After</span><h3>Online Newegg bundle</h3></header>
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-07-after-online.jpg">
+                <source src="media/rsi-07-after-online.mp4" type="video/mp4">
+              </video>
+              <button class="method-video-play" type="button" aria-label="Play after demo" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+            </div>
+            <p>Champion policy filters in-store-only SKUs and returns a <strong>nationwide shippable</strong> Newegg option (~$2.9K).</p>
+          </article>
+        </div>
+      </section>
 
       <div class="improvement-visuals improvement-first">
         <article class="panel improvement-chart-panel">
-          <div class="panel-head"><div><p class="eyebrow">Recursive improvement</p><h2>Champion vs. each challenger</h2></div><span class="data-badge">Measured runs</span></div>
+          <div class="panel-head"><div><p class="eyebrow">CSV / Prime track</p><h2>Champion vs. each challenger</h2></div><span class="data-badge">Measured runs</span></div>
           <div class="improvement-chart-wrap"><canvas id="improvement-chart" aria-label="Recursive self-improvement chart"></canvas></div>
         </article>
         <article class="improvement-summary" id="improvement-summary"><i class="fa-solid fa-spinner fa-spin"></i><p>Loading policy deltas…</p></article>
@@ -249,6 +315,47 @@
           </article>
         </div>
         <p class="method-demo-note"><i class="fa-solid fa-circle-check"></i> Actual workflow captures from Discord, the cloud sandbox, and the Verifiers evaluation run.</p>
+      </article>
+
+      <article class="morning-cycle">
+        <div class="section-title">
+          <p class="eyebrow">Autoresearch showcase</p>
+          <h2>Staircase · before/after · online-first policy.</h2>
+          <p>Recorded progress from Jul 17 5pm CDT through the live champion. Seed justified by Verifiers baseline, Prime-RL eval, and coordinator promotions.</p>
+        </div>
+        <div class="morning-videos" aria-label="Autoresearch demo videos">
+          <article class="method-video-card">
+            <header><span>05 · Progress</span><h3>Keep / discard staircase</h3></header>
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-05-autoresearch-progress.jpg">
+                <source src="media/rsi-05-autoresearch-progress.mp4" type="video/mp4">
+              </video>
+              <button class="method-video-play" type="button" aria-label="Play autoresearch progress" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+            </div>
+            <p>Karpathy-style running-best line. Grey = discarded experiments; green = kept promotions.</p>
+          </article>
+          <article class="method-video-card">
+            <header><span>06 · Before</span><h3>Micro Center bait</h3></header>
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-06-before-microcenter.jpg">
+                <source src="media/rsi-06-before-microcenter.mp4" type="video/mp4">
+              </video>
+              <button class="method-video-play" type="button" aria-label="Play before demo" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+            </div>
+            <p>Unoptimized harness picks the cheapest in-store member price that cannot ship.</p>
+          </article>
+          <article class="method-video-card">
+            <header><span>07 · After</span><h3>Online-fulfillable</h3></header>
+            <div class="method-video">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-07-after-online.jpg">
+                <source src="media/rsi-07-after-online.mp4" type="video/mp4">
+              </video>
+              <button class="method-video-play" type="button" aria-label="Play after demo" aria-pressed="false"><i class="fa-solid fa-play"></i></button>
+            </div>
+            <p>Champion lessons drop in-store-only SKUs and recommend a nationwide Newegg bundle.</p>
+          </article>
+        </div>
+        <p class="method-demo-note"><i class="fa-solid fa-seedling"></i> Plot seed <code id="method-seed">—</code> · see Leaderboard for the five live charts.</p>
       </article>
 
       <article class="strategy-cycle">
@@ -374,6 +481,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>

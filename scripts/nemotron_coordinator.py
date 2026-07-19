@@ -15,6 +15,8 @@ DATASET_PATH = os.path.join(BASE_DIR, "scripts", "golden_dataset.json")
 EVAL_OUTPUT_PATH = os.path.join(BASE_DIR, "dashboard", "evaluations.json")
 MEMORY_OUTPUT_PATH = os.path.join(BASE_DIR, "dashboard", "episodic_memory.json")
 RADAR_OUTPUT_PATH = os.path.join(BASE_DIR, "dashboard", "radar_live.json")
+RADAR_SNAPSHOTS_PATH = os.path.join(BASE_DIR, "data", "radar_snapshots.json")
+RESEARCH_HOME = os.path.join(BASE_DIR, "research")
 MEMORY_BUFFER_PATH = os.path.join(BASE_DIR, "docs", "memory_buffer.txt")
 
 # Global State
@@ -22,6 +24,30 @@ coordinator_status = "idle"
 current_logs = []
 latest_mutation = "[System Instruction Profile (Base)]\nLocate cheap hardware products on eBay and Amazon based on user text. Select lowest list prices."
 latest_score = 56
+
+
+def _latest_run_dir():
+    """Most recently updated research/runs/<id>/ directory, or None."""
+    runs = os.path.join(RESEARCH_HOME, "runs")
+    if not os.path.isdir(runs):
+        return None
+    dirs = [
+        os.path.join(runs, d)
+        for d in os.listdir(runs)
+        if os.path.isdir(os.path.join(runs, d))
+    ]
+    if not dirs:
+        return None
+    return max(dirs, key=os.path.getmtime)
+
+
+def _load_json(path, default=None):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception:
+        return default if default is not None else {}
+
 
 # Preloaded simulated iterations
 research_iterations = [
@@ -295,7 +321,35 @@ class CoordinatorAPIHandler(BaseHTTPRequestHandler):
             os.makedirs(os.path.dirname(RADAR_OUTPUT_PATH), exist_ok=True)
             with open(RADAR_OUTPUT_PATH, "w") as f:
                 json.dump(existing, f, indent=2)
+            # Mirror into the committed snapshots path the loop also writes
+            os.makedirs(os.path.dirname(RADAR_SNAPSHOTS_PATH), exist_ok=True)
+            with open(RADAR_SNAPSHOTS_PATH, "w") as f:
+                json.dump(existing, f, indent=2)
             return self._reply(200, {"status": "success", "stored": len(rows), "total": len(existing)})
+
+        if parsed_path.path == "/api/autoresearch/control":
+            action = (body.get("action") or "none").lower()
+            if action not in ("pause", "stop", "none", "adjust", "resume"):
+                return self._reply(400, {"error": "action must be pause|stop|none|adjust|resume"})
+            if action == "resume":
+                action = "none"
+            run_dir = _latest_run_dir()
+            if body.get("run_id"):
+                candidate = os.path.join(RESEARCH_HOME, "runs", body["run_id"])
+                if os.path.isdir(candidate):
+                    run_dir = candidate
+            if not run_dir:
+                return self._reply(404, {"error": "no autoresearch run found"})
+            control = {
+                "action": action,
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            }
+            if body.get("addendum"):
+                control["addendum"] = body["addendum"]
+            with open(os.path.join(run_dir, "control.json"), "w") as f:
+                json.dump(control, f, indent=2)
+                f.write("\n")
+            return self._reply(200, {"status": "ok", "run_dir": run_dir, "control": control})
 
         return self._reply(404, {"error": "unknown endpoint"})
 
@@ -318,12 +372,45 @@ class CoordinatorAPIHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            if os.path.exists(RADAR_OUTPUT_PATH):
-                with open(RADAR_OUTPUT_PATH, "r") as f:
-                    self.wfile.write(f.read().encode())
-            else:
-                self.wfile.write(json.dumps([]).encode())
+            data = "[]"
+            for path in (RADAR_OUTPUT_PATH, RADAR_SNAPSHOTS_PATH):
+                if os.path.exists(path):
+                    with open(path, "r") as f:
+                        data = f.read()
+                    break
+            self.wfile.write(data.encode())
             return
+
+        if parsed_path.path == "/api/autoresearch/status":
+            run_dir = _latest_run_dir()
+            qs = parse_qs(parsed_path.query)
+            if qs.get("run_id"):
+                candidate = os.path.join(RESEARCH_HOME, "runs", qs["run_id"][0])
+                if os.path.isdir(candidate):
+                    run_dir = candidate
+            if not run_dir:
+                return self._reply(200, {"active": False, "message": "no runs yet"})
+            status = _load_json(os.path.join(run_dir, "status.json"))
+            config = _load_json(os.path.join(run_dir, "config.json"))
+            control = _load_json(os.path.join(run_dir, "control.json"))
+            usage = _load_json(os.path.join(run_dir, "usage.json"))
+            return self._reply(200, {
+                "active": status.get("phase") in (
+                    "planning", "executing", "paused", "paused_error", "starting",
+                ),
+                "run_dir": run_dir,
+                "run_id": os.path.basename(run_dir),
+                "status": status,
+                "config": {k: config.get(k) for k in (
+                    "goal", "domain", "scope", "depth",
+                    "max_experiments", "max_duration_minutes", "max_tokens",
+                ) if k in config},
+                "control": control,
+                "usage": {
+                    "total_tokens": usage.get("total_tokens", 0),
+                    "estimated_cost_usd": usage.get("estimated_cost_usd"),
+                } if usage else {},
+            })
 
         if parsed_path.path in ("/autoresearch", "/autoresearch.html"):
             page = os.path.join(BASE_DIR, "dashboard", "autoresearch.html")

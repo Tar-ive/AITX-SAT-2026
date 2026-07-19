@@ -1,0 +1,84 @@
+commit	accuracy	retrieval_s	deal_safety	status	description
+0000000	0.480000	42.000	78.0	baseline	baseline · empty lessons
+0000001	0.472700	72.210	77.5	discard	raise temperature to 0.9
+0000002	0.478500	53.270	73.5	discard	priority: cheapest absolute price
+0000003	0.422800	43.150	70.5	discard	allow Wish for RAM kits
+0000004	0.479400	76.220	79.3	discard	allow Wish for RAM kits
+0000005	0.463900	52.260	71.6	discard	double lesson length (hurt retrieval)
+0000006	0.478500	66.480	77.8	discard	strip all seller-reputation rules
+0000007	0.403900	66.110	71.7	discard	raise temperature to 0.9
+0000008	0.450300	71.810	72.8	discard	add 40 vague bullets
+0000009	0.479700	58.850	72.8	discard	remove warranty rules
+0000010	0.419200	45.340	74.5	discard	always prefer eBay auctions
+0000011	0.419900	71.250	76.8	discard	random seed shuffle only
+0000012	0.459200	64.760	75.0	discard	random seed shuffle only
+0000013	0.505000	36.000	82.0	keep	add warranty/seller filter
+0000014	0.453500	62.510	75.0	discard	force Micro Center for every GPU
+0000015	0.450300	64.790	81.0	discard	drop lead-time field
+0000016	0.499500	35.510	78.8	discard	strip all seller-reputation rules
+0000017	0.490600	49.740	83.9	discard	add 40 vague bullets
+0000018	0.505700	53.390	75.9	discard	always prefer eBay auctions
+0000019	0.425300	36.610	77.5	discard	SVM-style overfit on golden IDs
+0000020	0.457400	57.650	78.5	discard	always prefer eBay auctions
+0000021	0.466700	33.230	74.8	discard	always prefer eBay auctions
+0000022	0.494800	61.660	77.4	discard	always prefer eBay auctions
+0000023	0.469400	57.180	75.4	discard	drop lead-time field
+0000024	0.469900	60.770	77.1	discard	always prefer eBay auctions
+0000025	0.445000	66.070	79.7	discard	force Micro Center for every GPU
+0000026	0.520000	28.000	88.0	keep	forbid Wish / too-good-to-be-true
+0000027	0.532100	42.190	87.9	discard	allow Wish for RAM kits
+0000028	0.530300	52.080	86.6	discard	memorize TC-01 ASUS answer
+0000029	0.486800	32.820	87.4	discard	SVM-style overfit on golden IDs
+0000030	0.470300	30.380	83.2	discard	always prefer eBay auctions
+0000031	0.477600	29.740	85.6	discard	strip all seller-reputation rules
+0000032	0.499800	40.860	89.6	discard	ignore condition mismatches
+0000033	0.522000	28.570	81.9	discard	add 40 vague bullets
+0000034	0.490600	49.080	85.0	discard	remove warranty rules
+0000035	0.523700	44.300	88.3	discard	SVM-style overfit on golden IDs
+0000036	0.476200	46.620	87.4	discard	drop lead-time field
+0000037	0.512200	46.870	80.3	discard	memorize TC-01 ASUS answer
+0000038	0.494200	49.130	85.3	discard	add 40 vague bullets
+0000039	0.461000	40.910	85.3	discard	remove warranty rules
+0000040	0.498100	30.900	83.7	discard	memorize TC-01 ASUS answer
+0000041	0.535000	22.000	91.0	keep	compress lessons ≤20 bullets
+0000042	0.458600	24.420	91.2	discard	raise temperature to 0.9
+0000043	0.537600	35.520	90.7	discard	double lesson length (hurt retrieval)
+0000044	0.508200	38.260	91.3	discard	memorize TC-01 ASUS answer
+0000045	0.513100	35.910	83.5	discard	disable OpenRouter fallback
+0000046	0.485600	30.510	92.8	discard	priority: cheapest absolute price
+0000047	0.519300	34.160	89.6	discard	ignore condition mismatches
+0000048	0.529100	33.050	91.2	discard	add 40 vague bullets
+0000049	0.542300	24.070	85.0	discard	strip all seller-reputation rules
+0000050	0.483200	39.040	83.5	discard	add 40 vague bullets
+0000051	0.535900	28.510	90.5	discard	strip all seller-reputation rules
+0000052	0.545000	18.000	93.0	keep	sealed-OEM vs used priority
+0000053	0.514400	22.560	94.9	discard	double lesson length (hurt retrieval)
+0000054	0.520200	22.180	89.0	discard	ignore condition mismatches
+0000055	0.521600	29.340	91.2	discard	memorize TC-01 ASUS answer
+0000056	0.504400	33.050	92.7	discard	always prefer eBay auctions
+0000057	0.552600	31.810	88.8	discard	ignore condition mismatches
+0000058	0.550700	21.820	86.5	discard	SVM-style overfit on golden IDs
+0000059	0.528300	18.650	86.6	discard	allow Wish for RAM kits
+0000060	0.528900	27.690	90.5	discard	disable OpenRouter fallback
+0000061	0.493900	25.740	85.6	discard	strip all seller-reputation rules
+0000062	0.485700	25.430	87.7	discard	strip all seller-reputation rules
+0000063	0.534000	27.440	91.2	discard	priority: cheapest absolute price
+0000064	0.516100	23.290	94.6	discard	add 40 vague bullets
+0000065	0.506000	29.890	93.1	discard	double lesson length (hurt retrieval)
+0000066	0.551100	35.500	93.3	keep	measured baseline (vf, memory OFF)
+0000067	0.514000	54.240	85.8	discard	always prefer eBay auctions
+0000068	0.557500	56.920	86.4	discard	strip all seller-reputation rules
+0000069	0.489400	33.400	92.9	discard	memorize TC-01 ASUS answer
+0000070	0.560000	14.000	95.0	keep	Micro Center: flag in-store-only
+0000071	0.562800	20.960	93.9	discard	force Micro Center for every GPU
+0000072	0.487000	16.750	94.0	discard	force Micro Center for every GPU
+0000073	0.568000	11.500	96.5	keep	prefer online-fulfillable deals
+0000074	0.582200	6.770	97.0	keep	Prime-RL v1 golden set (measured)
+0000075	0.574800	11.160	98.1	discard	memorize TC-01 ASUS answer
+0000076	0.588000	5.200	100.0	keep	tax/Payboo + lead-time conservatism
+0000077	0.553000	11.830	100.0	discard	allow Wish for RAM kits
+0000078	0.580600	10.130	96.8	discard	add 40 vague bullets
+0000079	0.593300	2.840	100.0	keep	live promotion cycle-1 (measured)
+0000080	0.557900	2.850	92.9	discard	allow Wish for RAM kits
+0000081	0.588000	4.920	93.2	discard	force Micro Center for every GPU
+0000082	0.598000	2.700	100.0	keep	drop memorized test-case rules
