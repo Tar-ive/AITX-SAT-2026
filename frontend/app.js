@@ -81,7 +81,6 @@ function renderMarket(payload){
   const rows=payload.listings, meta=payload.meta, product=catalog[state.category], target=+$("#target-price").value;
   const prices=rows.map(row=>row.total_price), best=prices.length?Math.min(...prices):null, max=prices.length?Math.max(...prices):null;
   $("#data-badge").innerHTML='<i class="fa-solid fa-database"></i> Live Supabase';
-  $("#sync-status").innerHTML=`<span class="live-dot"></span> Hosted Supabase refreshed <strong>${relativeTime(meta.last_synced_at)}</strong>`;
   $("#chart-title").textContent=`${product.label} current price spread`;
   $("#best-price").textContent=best==null?"—":money(best);
   $("#target-display").textContent=money(target);
@@ -108,7 +107,6 @@ async function loadMarket(category=state.category){
     renderMarket(payload);
   }catch(error){
     $("#data-badge").innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> API unavailable';
-    $("#sync-status").innerHTML='<span class="error-dot"></span> Hosted Supabase connection failed';
     renderMarket({listings:[],meta:{last_synced_at:new Date().toISOString(),source_count:0,sources:[],successful_syncs:0}});
     showToast(error.message);
   }
