@@ -16,7 +16,7 @@ The committed `.env.example` contains only placeholders.
 
    ```bash
    set -a
-   source /mnt/c/Users/abhis/OneDrive/Documents/aitx_sat_2026/.env
+   source /path/to/AITX-SAT-2026/.env
    set +a
    nemohermes credentials add nvidia-prod --type nvidia --credential NVIDIA_INFERENCE_API_KEY
    ```

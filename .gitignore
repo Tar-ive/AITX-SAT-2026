@@ -29,6 +29,9 @@ autoresearch/research/registry.json
 # Karpathy-pattern local artifacts (seeded results.tsv is committed for the demo)
 run.log
 runs/
+workflow/runs/
+workflow/latest-*.json
+workflow/*.png
 .venv/
 worktrees/
 queue/

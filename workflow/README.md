@@ -40,3 +40,4 @@ Run the three commands above. The first prints a UTC cron expression, the
 second generates a fully timestamped ledger and a dry-run `#daily` message,
 and the third verifies schedule parsing and online/offline ranking. Re-running
 the demo creates a new immutable ledger while retaining the same fixture input.
+Generated ledgers and screenshots are local artifacts and are not committed.

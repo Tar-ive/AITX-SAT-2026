@@ -186,7 +186,7 @@ cycles. Credentials are not written to the post.
 ## 7. Real-data UI and caching
 
 The Evals UI reads timestamped rows from `public.harness_experiments`,
-`public.agent_soul`, and, when present, `public.evaluation_samples`.
+`public.agent_soul`, and, when present, `public.evaluation_verifiers`.
 
 - The initial endpoint returns graph summaries only.
 - Detailed rollout samples load when the evidence drawer is opened.

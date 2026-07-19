@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
 
+try: from .cron_regex import parse as parse_schedule
+except ImportError: from cron_regex import parse as parse_schedule
+
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = Path(__file__).resolve().parent
 RUNS = WORKFLOW / "runs"
@@ -19,8 +22,7 @@ def step(ledger, name, fn):
 def parse_command(text):
     match = re.fullmatch(r"!deals\s+(.+)", " ".join(text.strip().split()), flags=re.I)
     if not match: raise ValueError("Use: !deals daily at 9am")
-    from cron_regex import parse
-    return parse(match.group(1))
+    return parse_schedule(match.group(1))
 def load_preferences(path):
     if not path.exists(): raise FileNotFoundError(f"Missing preference file: {path}")
     return path.read_text(encoding="utf-8")

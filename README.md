@@ -61,7 +61,7 @@ backend/          — api/ (Vercel serverless), scripts/ (dashboard + marketplac
                     supabase/ (migrations), supabase-readonly-proxy/, infra/ (terraform EC2 hosts)
 nemoclaw/         — deploy/ (nemoclaw docker-compose), config/ + identity/ (agent team),
                     scripts/ (Railway coordinator, Discord bots, sandbox wiring),
-                    skills/ (hermes-tavily-search, sage-cron-publisher, supabase-readonly)
+                    skills/ (all deployable agent skills), agents/ + policies/
 autoresearch/     — the Karpathy loop + RSI machinery (below)
 docs/             — architecture notes, design QA + screenshots
 ```
@@ -163,12 +163,12 @@ The five Evals metrics are:
 4. **Hermes episodic memory diff lines**
 5. **Agent knowledge regression**
 
-Prompt-injection risk is intentionally shown as **not measured** until a
-dedicated injection suite runs. It is not inferred from platform-policy errors.
+Prompt-injection risk is measured by the dedicated promotion-time injection
+suite. Between promotions, the chart carries the latest measured value.
 
-![Connected measured evaluations from Supabase](output/playwright/evals-connected-results.png)
+![Production Evals dashboard with five live Supabase metrics](output/playwright/production-evals-overview.png)
 
-![Expandable episode and rollout evidence](output/playwright/evals-rollout-expanded.png)
+![Production Evals evidence panel and stored rollout browser](output/playwright/production-evals-evidence-viewport.png)
 
 ![Eleven-step methodology loop](output/playwright/methodology-eleven-step-loop.png)
 
@@ -191,8 +191,6 @@ paired `autoresearch-v2` loop. Both write timestamped candidates to
 `public.harness_experiments`; rejected candidates remain visible, while only
 accepted experiments advance the green champion staircase.
 
-![Cached live Supabase Evals graphs](output/playwright/evals-cached-live-graphs.png)
-
 Promotion is traceable. `promote_to_soul.py` hash-unions normalized lesson lines,
 writes a new `public.agent_soul` version, and records the experiment and Git ref.
 An otherwise eligible v2 candidate must pass the combined injection scan before
@@ -211,7 +209,7 @@ connections, and sent `Cache-Control: no-store`. The current path:
 4. renders a verified browser cache immediately and refreshes in the background;
 5. loads raw episode/rollout evidence only when its drawer is opened.
 
-If `public.evaluation_samples` has not been created, the graphs still use the
+If `public.evaluation_verifiers` has not been created, the graphs still use the
 real experiment and SOUL tables; detailed samples remain empty rather than
 breaking the whole Evals page.
 
@@ -220,7 +218,7 @@ breaking the whole Evals page.
 1. Discord exchanges are normalized into `public.episodes`; Hermes preference
    changes are versioned in `public.agent_soul`.
 2. The loop writes timestamped summaries to `public.harness_experiments` and
-   raw rollout payloads to `public.evaluation_samples`; the Evals API reads only
+   raw rollout payloads to `public.evaluation_verifiers`; the Evals API reads only
    this Supabase history.
 3. Charts connect every measured evaluation by timestamp. Point color marks
    promoted, evaluated, or rolled-back runs; blank metrics stay blank.
@@ -308,7 +306,7 @@ breaking the whole Evals page.
    files and routes `/api/*` to `backend/api/index.py`, which calls
    `backend/scripts/dashboard_api.py`. The Evals page:
    - loads `/api/autoresearch-experiments` exclusively from timestamped
-     `harness_experiments` and `evaluation_samples` rows in Supabase
+     `harness_experiments` and `evaluation_verifiers` rows in Supabase
    - groups raw samples into expandable evaluations, episodes, and rollouts
    - exposes `/api/research-evidence` for the underlying user-feedback records
    - loads marketplace cards from hosted Supabase

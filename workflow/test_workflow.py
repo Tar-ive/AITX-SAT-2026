@@ -1,6 +1,6 @@
 import unittest
 from pathlib import Path
-from daily_deals import categorize, discord_message, parse_command, recommend
+from workflow.daily_deals import categorize, discord_message, parse_command, recommend
 class WorkflowTests(unittest.TestCase):
  def test_discord_command_uses_canonical_parser(self): self.assertEqual(parse_command("!deals daily at 9am")["cron"], "0 14 * * *")
  def test_online_wins_near_tie(self):

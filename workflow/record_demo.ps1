@@ -6,7 +6,7 @@ $python = Get-Command python -ErrorAction SilentlyContinue
 if ($python -and $python.Source -notlike '*WindowsApps*') {
   & $python.Source "$PSScriptRoot/daily_deals.py" --run --mode demo | Set-Content "$PSScriptRoot/latest-demo.json"
 } elseif (Get-Command wsl -ErrorAction SilentlyContinue) {
-  $linuxRoot = "/mnt/c/Users/abhis/OneDrive/Documents/aitx_sat_2026"
+  $linuxRoot = (& wsl -d Ubuntu-24.04 -- wslpath -a "$root").Trim()
   & wsl -d Ubuntu-24.04 -- bash -lc "cd '$linuxRoot' && python3 workflow/daily_deals.py --run --mode demo" | Set-Content "$PSScriptRoot/latest-demo.json"
 } else {
   throw "Python 3 is required (or install WSL with Python 3)."
