@@ -45,11 +45,11 @@ Platforms: Amazon (Direct), Amazon Marketplace Third-Party, eBay, Newegg,
 Best Buy, Micro Center. Be conservative about warranty and delivery claims."""
 
 
-def chat(base, key, model, system, user, timeout=90):
+def chat(base, key, model, system, user, timeout=90, temperature=0):
     t0 = time.time()
     r = requests.post(f"{base}/chat/completions", timeout=timeout,
         headers={"Authorization": f"Bearer {key}"},
-        json={"model": model, "temperature": 0,
+        json={"model": model, "temperature": temperature,
               "messages": [{"role": "system", "content": system},
                            {"role": "user", "content": user}]})
     r.raise_for_status()
@@ -122,11 +122,25 @@ def evaluate(lessons: str):
             "n": len(scores)}, fails
 
 
-def mutate(champion_lessons, history, fails):
+# Rotating research strategies keep mutations diverse so the trend explores
+# (moves and dips) instead of plateauing on one local optimum.
+STRATEGIES = [
+    "Rewrite the policy from a DIFFERENT ANGLE than the champion — try rules the champion lacks.",
+    "Be AGGRESSIVE on warranty/counterfeit safety even if it risks a few accuracy points.",
+    "Optimize for SPEED: fewer, sharper rules so the judge decides faster.",
+    "Focus on the specific FAILURES below — add precise rules that fix exactly those.",
+    "Simplify radically: keep only the highest-leverage rules, drop the rest.",
+]
+
+
+def mutate(champion_lessons, history, fails, cycle):
+    strategy = STRATEGIES[cycle % len(STRATEGIES)]
     prompt = f"""You are the researcher in an autoresearch loop optimizing a GPU
 purchase-decision policy. The policy IS the lessons file below (like
 autoresearch's program.md). Objectives: accuracy UP, response length SHORT
 (long lessons slow retrieval), zero forbidden-platform picks, no regression.
+
+THIS CYCLE'S STRATEGY: {strategy}
 
 CURRENT CHAMPION LESSONS:
 {champion_lessons or '(empty)'}
@@ -140,14 +154,15 @@ Write an improved lessons file: <=20 tight bullet rules, generalized from the
 failures, no test-case IDs or memorized answers, markdown bullets only.
 Reply with ONLY the new lessons file content."""
     sys_msg = "You improve policy instruction files. Output only the file content."
+    # Vary temperature so successive mutations differ and the trend keeps moving.
+    temp = 0.4 + 0.5 * ((cycle % 5) / 4)
     try:
         text, _ = chat("https://opencode.ai/zen/v1", OPENCODE_KEY,
                        os.environ.get("RESEARCHER_MODEL", "nemotron-3-ultra-free"),
-                       sys_msg, prompt, timeout=240)
+                       sys_msg, prompt, timeout=240, temperature=temp)
     except Exception:
-        # opencode credits/outage: fall back to NVIDIA (then OpenRouter via judge path)
         text, _ = chat("https://integrate.api.nvidia.com/v1", NVIDIA_KEY,
-                       "nvidia/nemotron-3-super-120b-a12b", sys_msg, prompt, timeout=240)
+                       "nvidia/nemotron-3-super-120b-a12b", sys_msg, prompt, timeout=240, temperature=temp)
     # strip <think> blocks reasoning models may emit
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
     return text.strip()
@@ -194,9 +209,13 @@ def main():
     cycle = 0
     while True:
         cycle += 1
+        # Periodically re-push full history so an ephemeral coordinator wipe
+        # (Railway redeploy) self-heals within a few cycles — no AWS needed.
+        if cycle % 6 == 0:
+            resync_coordinator()
         print(f"[autoresearch] cycle {cycle}: mutating policy...", flush=True)
         try:
-            candidate = mutate(champion, history, fails)
+            candidate = mutate(champion, history, fails, cycle)
         except Exception as e:
             print(f"[autoresearch] researcher call failed: {e}; retrying next cycle", flush=True)
             time.sleep(CYCLE_SECS)
