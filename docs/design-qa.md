@@ -1,11 +1,22 @@
 # Design QA — Methodology RSI loop
 
-- Source visual truth: `/var/folders/2v/_k7jy0rs42941z8ym58lymd80000gn/T/TemporaryItems/NSIRD_screencaptureui_W0yjhQ/Screenshot 2026-07-18 at 7.27.37 PM.png`
-- Implementation screenshot: `/Users/tarive/aitx_sat_2026/design-qa-methodology-loop.jpg`
-- Side-by-side comparison: `/Users/tarive/aitx_sat_2026/design-qa-methodology-comparison.png`
 - Route: `http://127.0.0.1:8787/#methodology`
 - Viewports: 1280px desktop; 390 × 844 mobile
 - State: loop paused for comparison
+
+### Screenshots
+
+Implementation:
+
+![methodology loop](design-qa-methodology-loop.jpg)
+
+Full view:
+
+![methodology full](design-qa-methodology-full.png)
+
+Side-by-side comparison:
+
+![methodology comparison](design-qa-methodology-comparison.png)
 
 ## Full-view comparison
 

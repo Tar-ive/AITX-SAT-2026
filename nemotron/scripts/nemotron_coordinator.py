@@ -8,16 +8,17 @@ import requests
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
-# Path Configuration
+# Path Configuration (file lives at nemotron/scripts/, repo root is two up)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO_ROOT = os.path.dirname(BASE_DIR)
 CONFIG_PATH = os.path.join(BASE_DIR, "scripts", "nemotron_config.json")
-DATASET_PATH = os.path.join(BASE_DIR, "scripts", "golden_dataset.json")
-EVAL_OUTPUT_PATH = os.path.join(BASE_DIR, "dashboard", "evaluations.json")
-MEMORY_OUTPUT_PATH = os.path.join(BASE_DIR, "dashboard", "episodic_memory.json")
-RADAR_OUTPUT_PATH = os.path.join(BASE_DIR, "dashboard", "radar_live.json")
-RADAR_SNAPSHOTS_PATH = os.path.join(BASE_DIR, "data", "radar_snapshots.json")
-RESEARCH_HOME = os.path.join(BASE_DIR, "research")
-MEMORY_BUFFER_PATH = os.path.join(BASE_DIR, "docs", "memory_buffer.txt")
+DATASET_PATH = os.path.join(REPO_ROOT, "autoresearch", "scripts", "golden_dataset.json")
+EVAL_OUTPUT_PATH = os.path.join(REPO_ROOT, "frontend", "evaluations.json")
+MEMORY_OUTPUT_PATH = os.path.join(REPO_ROOT, "frontend", "episodic_memory.json")
+RADAR_OUTPUT_PATH = os.path.join(REPO_ROOT, "frontend", "radar_live.json")
+RADAR_SNAPSHOTS_PATH = os.path.join(REPO_ROOT, "autoresearch", "data", "radar_snapshots.json")
+RESEARCH_HOME = os.path.join(REPO_ROOT, "autoresearch", "research")
+MEMORY_BUFFER_PATH = os.path.join(REPO_ROOT, "docs", "memory_buffer.txt")
 
 # Global State
 coordinator_status = "idle"
@@ -413,7 +414,7 @@ class CoordinatorAPIHandler(BaseHTTPRequestHandler):
             })
 
         if parsed_path.path in ("/autoresearch", "/autoresearch.html"):
-            page = os.path.join(BASE_DIR, "dashboard", "autoresearch.html")
+            page = os.path.join(REPO_ROOT, "frontend", "autoresearch.html")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
@@ -453,7 +454,7 @@ class CoordinatorAPIHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            memory_file = os.path.join(BASE_DIR, "dashboard", "episodic_memory.json")
+            memory_file = os.path.join(REPO_ROOT, "frontend", "episodic_memory.json")
             if os.path.exists(memory_file):
                 with open(memory_file, "r") as f:
                     self.wfile.write(f.read().encode())

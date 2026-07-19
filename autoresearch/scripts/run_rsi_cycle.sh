@@ -3,7 +3,7 @@
 # CURRENT episodic-memory lessons -> scored results -> dashboard CSV row.
 #
 # Usage:
-#   scripts/run_rsi_cycle.sh v1.5 "nightly lessons 07-19" [memory/lessons.md]
+#   autoresearch/scripts/run_rsi_cycle.sh v1.5 "nightly lessons 07-19" [memory/lessons.md]
 #
 # Prereqs (once):  uv tool install verifiers  (or: pip install verifiers)
 #                  vf-install ./environments/gpu_deal_judge
@@ -14,9 +14,10 @@ VERSION="${1:?version tag, e.g. v1.5}"
 POLICY_CHANGE="${2:?short description of what changed}"
 MEMORY_FILE="${3:-}"
 
+# Runs from autoresearch/ — scripts/, data/, environments/, outputs/ are siblings.
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO"
-set -a; [ -f .env ] && . ./.env; set +a
+set -a; [ -f .env ] && . ./.env; [ -f ../.env ] && . ../.env; set +a
 export OPENAI_API_KEY="${NVIDIA_INFERENCE_API_KEY:-$NVIDIA_API_KEY}"
 
 MODEL="nvidia/nemotron-3-super-120b-a12b"

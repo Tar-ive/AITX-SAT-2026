@@ -1,6 +1,6 @@
 # autoresearch
 
-![teaser](progress.png)
+![teaser](autoresearch/progress.png)
 
 *One day, frontier AI research used to be done by meat computers in between eating, sleeping, having other fun, and synchronizing once in a while using sound wave interconnect in the ritual of "group meeting". That era is long gone. Research is now entirely the domain of autonomous swarms of AI agents running across compute cluster megastructures in the skies... This repo is the story of how it all began. —@karpathy, March 2026*
 
@@ -45,28 +45,40 @@ status:            keep
 
 The agent commits on **keep**, `git reset --hard HEAD~1` on **discard**. See `program.md` for the full forever-loop.
 
-### Project structure (Karpathy-aligned)
+### Repo structure
 
 ```
-prepare.py       — constants + golden eval (do not modify)
-train.py         — policy lessons + experiment runner (agent modifies)
-program.md       — agent instructions
-results.tsv      — commit / accuracy / retrieval / safety / status / description
-progress.png     — running-best teaser
-analysis.ipynb   — plot results.tsv
-pyproject.toml   — dependencies
-.python-version  — 3.12
+frontend/         — Vercel Decision Frontier UI (static dashboard + demos + media)
+backend/          — api/ (Vercel serverless), scripts/ (dashboard + marketplace APIs),
+                    supabase/ (migrations), supabase-readonly-proxy/, infra/ (terraform EC2 hosts)
+nemotron/         — deploy/ (nemoclaw docker-compose), config/ + identity/ (agent team),
+                    scripts/ (Railway coordinator, Discord bots, sandbox wiring),
+                    skills/ (hermes-tavily-search, sage-cron-publisher, supabase-readonly)
+autoresearch/     — the Karpathy loop + RSI machinery (below)
+docs/             — architecture notes, design QA + screenshots
 ```
 
-Supporting AITX platform (hosts, dashboards, Discord) lives alongside — it is the compute/data plane the loop publishes into:
+The Karpathy-aligned core, in `autoresearch/`:
 
 ```
-scripts/auto_research_loop.py   — continuous host wrapper (EC2)
-scripts/nemotron_coordinator.py — Railway coordinator API
-dashboard/ + api/               — Vercel Decision Frontier UI
-skills/autoresearch/            — Hermes #4823 helpers (state/plan/git workspace)
-environments/gpu_deal_judge*/   — Prime / Verifiers tasksets
-infra/terraform/                — EC2 agent host
+autoresearch/prepare.py       — constants + golden eval (do not modify)
+autoresearch/train.py         — policy lessons + experiment runner (agent modifies)
+autoresearch/program.md       — agent instructions
+autoresearch/results.tsv      — commit / accuracy / retrieval / safety / status / description
+autoresearch/progress.png     — running-best teaser
+autoresearch/analysis.ipynb   — plot results.tsv
+autoresearch/pyproject.toml   — dependencies
+```
+
+Supporting AITX platform (hosts, dashboards, Discord) is the compute/data plane the loop publishes into:
+
+```
+autoresearch/scripts/auto_research_loop.py   — continuous host wrapper (EC2)
+nemotron/scripts/nemotron_coordinator.py     — Railway coordinator API
+frontend/ + backend/api/                     — Vercel Decision Frontier UI
+autoresearch/skill/                          — Hermes #4823 helpers (state/plan/git workspace)
+autoresearch/environments/gpu_deal_judge*/   — Prime / Verifiers tasksets
+backend/infra/terraform/                     — EC2 agent host
 ```
 
 ---

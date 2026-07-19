@@ -14,7 +14,7 @@ import psycopg2
 import requests
 from psycopg2.extras import Json
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 EBAY_SCOPE = "https://api.ebay.com/oauth/api_scope"
 ALLOWED_CATEGORIES = {
     "macbook": re.compile(r"\bmacbook\b", re.I),
@@ -60,10 +60,10 @@ def category(text):
 
 
 def database():
-    pooler = (ROOT / "supabase/.temp/pooler-url").read_text().strip()
+    pooler = (ROOT / "backend/supabase/.temp/pooler-url").read_text().strip()
     endpoint = pooler.rsplit("@", 1)[-1].split("/", 1)[0]
     host, port = endpoint.rsplit(":", 1)
-    project_ref = (ROOT / "supabase/.temp/project-ref").read_text().strip()
+    project_ref = (ROOT / "backend/supabase/.temp/project-ref").read_text().strip()
     return psycopg2.connect(
         host=host,
         port=int(port),

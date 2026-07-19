@@ -12,9 +12,9 @@ echo "=== RSI cycle $(date -u +%FT%TZ) ==="
 
 REPO=/opt/aitx/repo
 cd "$REPO"
-set -a; . deploy/docker-compose/.env; set +a
+set -a; . nemotron/deploy/docker-compose/.env; set +a
 export OPENAI_API_KEY="${NVIDIA_INFERENCE_API_KEY:?}"
-export GOLDEN_DATASET="$REPO/scripts/golden_dataset.json"
+export GOLDEN_DATASET="$REPO/autoresearch/scripts/golden_dataset.json"
 export PATH="/root/.local/bin:$PATH"
 
 C=$(docker ps --format '{{.Names}}' | grep openshell- | head -1)
@@ -27,7 +27,7 @@ LESSONS=/opt/aitx/memory/lessons-$VERSION.md
 docker cp "$C:/sandbox/.openclaw/workspace/MEMORY.md" "$LESSONS" 2>/dev/null || echo "" > "$LESSONS"
 echo "lessons snapshot: $LESSONS ($(wc -l < "$LESSONS") lines)"
 
-cd "$REPO/environments/gpu_deal_judge"
+cd "$REPO/autoresearch/environments/gpu_deal_judge"
 uv run --with verifiers --with . vf-eval gpu-deal-judge \
   -m "nvidia/nemotron-3-super-120b-a12b" \
   -b "https://integrate.api.nvidia.com/v1" -k OPENAI_API_KEY \
@@ -48,7 +48,7 @@ if [ "$(echo "$VALID" | awk '{print ($2>0 && $1*10 < $2*6) ? 1 : 0}')" = "1" ] &
     && echo "using OpenRouter results: $RESULTS" \
     || echo "OpenRouter fallback also failed; keeping NVIDIA results"
 fi
-cd "$REPO"
+cd "$REPO/autoresearch"
 python3 scripts/verifiers_to_rsi_csv.py "$RESULTS" \
   --output data/rsi_runs.csv \
   --run-id "$VERSION-$(date -u +%H%M)" \

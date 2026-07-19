@@ -7,7 +7,7 @@
 # and travel via stdin — never argv, never logs.
 set -euo pipefail
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 set -a; . "$REPO/.env"; set +a
 : "${DISCORD_BOT_TOKEN_SCOUT:?missing in .env}"
 : "${DISCORD_BOT_TOKEN_INSPECTOR:?missing in .env}"

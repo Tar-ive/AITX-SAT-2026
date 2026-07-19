@@ -9,7 +9,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-set -a; . "$REPO/deploy/docker-compose/.env" 2>/dev/null || . "$REPO/.env"; set +a
+set -a; . "$REPO/deploy/docker-compose/.env" 2>/dev/null || . "$REPO/../.env"; set +a
 : "${OPENROUTER_API_KEY:?missing in env}"
 
 C="${1:-$(docker ps --format '{{.Names}}' | grep openshell- | head -1)}"

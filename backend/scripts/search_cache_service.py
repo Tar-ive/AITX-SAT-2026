@@ -75,9 +75,9 @@ class H(BaseHTTPRequestHandler):
         # no Railway ephemeral wipes, no deploy lag. Read-only; exposes only
         # the leaderboard page and its data file (never the repo/secrets).
         if u.path in ("/leaderboard", "/", "/autoresearch"):
-            return self._file(os.path.join(REPO_DIR, "dashboard", "autoresearch.html"), "text/html; charset=utf-8")
+            return self._file(os.path.join(REPO_DIR, "frontend", "autoresearch.html"), "text/html; charset=utf-8")
         if u.path == "/radar":
-            return self._file(os.path.join(REPO_DIR, "data", "radar_snapshots.json"), "application/json")
+            return self._file(os.path.join(REPO_DIR, "autoresearch", "data", "radar_snapshots.json"), "application/json")
         if u.path != "/search-cache":
             return self._send(404, {"error": "not found"})
         q = (parse_qs(u.query).get("q") or [""])[0]

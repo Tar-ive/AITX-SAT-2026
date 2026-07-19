@@ -15,14 +15,14 @@ def autoresearch_home():
     """Root for run state and registry.
 
     Precedence: AUTORESEARCH_HOME → HERMES_HOME/autoresearch parent →
-    <repo>/research. Repo is inferred from this file's location
-    (skills/autoresearch/scripts/_util.py → repo root).
+    <repo>/autoresearch/research. The autoresearch dir is inferred from this
+    file's location (autoresearch/skill/scripts/_util.py).
     """
     if os.environ.get("AUTORESEARCH_HOME"):
         return os.environ["AUTORESEARCH_HOME"]
     if os.environ.get("HERMES_HOME"):
         return os.path.join(os.environ["HERMES_HOME"], "autoresearch")
-    repo = Path(__file__).resolve().parents[3]
+    repo = Path(__file__).resolve().parents[2]
     return str(repo / "research")
 
 

@@ -5,6 +5,7 @@ import csv
 import json
 import os
 import re
+import sys
 from datetime import datetime, timezone
 from decimal import Decimal
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -15,17 +16,19 @@ import psycopg2
 import requests
 from psycopg2.extras import RealDictCursor
 
-from prepare_rsi_story import build_story
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "autoresearch/scripts"))
 
-ROOT = Path(__file__).resolve().parents[1]
+from prepare_rsi_story import build_story  # noqa: E402
+
 PORT = int(os.getenv("DASHBOARD_API_PORT", "8787"))
-RSI_RUNS_CSV = Path(os.getenv("RSI_RUNS_CSV", ROOT / "data/rsi_runs.csv"))
-MODEL_METRICS_CSV = Path(os.getenv("MODEL_METRICS_CSV", ROOT / "data/model_metrics.csv"))
-LATEST_RSI_EVAL_JSON = Path(os.getenv("LATEST_RSI_EVAL_JSON", ROOT / "data/latest_rsi_eval.json"))
-LESSONS_FILE = Path(os.getenv("RSI_LESSONS_FILE", ROOT / "data/lessons.md"))
-AUTORESEARCH_EXPERIMENTS = Path(os.getenv("AUTORESEARCH_EXPERIMENTS", ROOT / "data/autoresearch_experiments.json"))
-RADAR_SNAPSHOTS = Path(os.getenv("RADAR_SNAPSHOTS", ROOT / "data/radar_snapshots.json"))
-VERIFIERS_EVAL_DIR = ROOT / "environments/gpu_deal_judge/outputs/evals"
+RSI_RUNS_CSV = Path(os.getenv("RSI_RUNS_CSV", ROOT / "autoresearch/data/rsi_runs.csv"))
+MODEL_METRICS_CSV = Path(os.getenv("MODEL_METRICS_CSV", ROOT / "autoresearch/data/model_metrics.csv"))
+LATEST_RSI_EVAL_JSON = Path(os.getenv("LATEST_RSI_EVAL_JSON", ROOT / "autoresearch/data/latest_rsi_eval.json"))
+LESSONS_FILE = Path(os.getenv("RSI_LESSONS_FILE", ROOT / "autoresearch/data/lessons.md"))
+AUTORESEARCH_EXPERIMENTS = Path(os.getenv("AUTORESEARCH_EXPERIMENTS", ROOT / "autoresearch/data/autoresearch_experiments.json"))
+RADAR_SNAPSHOTS = Path(os.getenv("RADAR_SNAPSHOTS", ROOT / "autoresearch/data/radar_snapshots.json"))
+VERIFIERS_EVAL_DIR = ROOT / "autoresearch/environments/gpu_deal_judge/outputs/evals"
 DISCORD_RSI_CHANNEL_ID = os.getenv("DISCORD_RSI_CHANNEL_ID", "1527922756480401478")
 CATEGORIES = {
     "macbook": re.compile(r"\bmacbook\b", re.I),
