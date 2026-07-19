@@ -2,23 +2,29 @@
 __pycache__/
 *.py[cod]
 .DS_Store
-*.tfplan
-infra/terraform/tfplan
-benchmarks/data/
-infra/terraform/.terraform/
-infra/terraform/*.tfstate*
-infra/terraform/*.pem
-infra/terraform/.terraform.lock.hcl
 .playwright-cli/
-output/playwright/
-outputs/
-scripts/nemotron_config.json
 .vercel
+.ruff_cache/
+
+# Terraform (backend/infra)
+*.tfplan
+backend/infra/terraform/tfplan
+backend/infra/terraform/.terraform/
+backend/infra/terraform/*.tfstate*
+backend/infra/terraform/*.pem
+backend/infra/terraform/.terraform.lock.hcl
+
+# Local eval / benchmark artifacts
+autoresearch/benchmarks/data/
+autoresearch/output/playwright/
+autoresearch/outputs/
+nemotron/scripts/nemotron_config.json
+
 # Autoresearch run workspaces (git repos + ephemeral state)
-research/runs/
-research/registry.json
-!research/champion-lessons.md
-!research/.gitkeep
+autoresearch/research/runs/
+autoresearch/research/registry.json
+!autoresearch/research/champion-lessons.md
+!autoresearch/research/.gitkeep
 
 # Karpathy-pattern local artifacts (seeded results.tsv is committed for the demo)
 run.log
