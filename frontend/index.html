@@ -42,7 +42,7 @@
   <main class="app-shell">
     <header class="topbar">
       <button class="mobile-menu" id="mobile-menu" aria-label="Open navigation"><i class="fa-solid fa-bars"></i></button>
-      <p id="sync-status"><span class="live-dot"></span> Connecting to hosted Supabase…</p>
+      <p id="sync-status" aria-hidden="true"></p>
       <div>
         <button class="icon-button" id="theme-button" aria-label="Toggle high contrast"><i class="fa-solid fa-circle-half-stroke"></i></button>
         <button class="avatar" aria-label="Open account menu">TK</button>
@@ -136,7 +136,6 @@
         <div>
           <p class="eyebrow">Timestamped · persistent · measured</p>
           <h1>Evals</h1>
-          <p>Real Verifiers and Prime evaluation runs stored in Supabase. Unmeasured metrics remain blank.</p>
         </div>
         <span class="edition" id="improvement-evidence">Loading Supabase evals…</span>
       </div>
@@ -144,8 +143,8 @@
       <div class="seed-bar" id="seed-bar">
         <div><small>Data source</small><strong id="seed-value">—</strong></div>
         <div><small>Evaluations</small><strong id="seed-eval-count">—</strong></div>
-        <div><small>Episodes tried</small><strong id="seed-episode-count">—</strong></div>
-        <div><small>Rollouts</small><strong id="seed-rollout-count">—</strong></div>
+        <div><small>Promoted</small><strong id="seed-kept-count">—</strong></div>
+        <div><small>Live loop sources</small><strong id="seed-loop-count">—</strong></div>
         <p id="seed-note">Loading timestamped Supabase history…</p>
       </div>
 
@@ -186,15 +185,22 @@
         </dl>
       </aside>
 
-      <section class="eval-results-section" aria-labelledby="eval-results-title">
-        <div class="eval-results-head">
-          <div><p class="eyebrow">Stored rollout evidence</p><h2 id="eval-results-title">Episodes and rollouts</h2></div>
-          <span class="data-badge"><i class="fa-solid fa-database"></i> Live Supabase</span>
-        </div>
-        <div class="eval-results" id="eval-results">
-          <p class="eval-results-empty">Loading stored evaluation samples…</p>
-        </div>
-      </section>
+      <details class="eval-results-shell" id="eval-results-shell">
+        <summary>
+          <span><i class="fa-solid fa-layer-group"></i> Inspect stored episodes and rollouts</span>
+          <small>Loaded only when opened</small>
+          <i class="fa-solid fa-chevron-down"></i>
+        </summary>
+        <section class="eval-results-section" aria-labelledby="eval-results-title">
+          <div class="eval-results-head">
+            <div><p class="eyebrow">Stored rollout evidence</p><h2 id="eval-results-title">Episodes and rollouts</h2></div>
+            <span class="data-badge"><i class="fa-solid fa-database"></i> Live Supabase</span>
+          </div>
+          <div class="eval-results" id="eval-results">
+            <p class="eval-results-empty">Open to load detailed evaluation samples.</p>
+          </div>
+        </section>
+      </details>
     </section>
 
     <section class="page methodology" id="methodology-page">
@@ -212,8 +218,8 @@
           <div class="rsi-loop-cards">
           <article class="method-video-card loop-card" data-loop-index="0" data-loop-detail="Always-on Karpathy-style experiments run on EC2. Every rollout lives in an isolated Git branch and is kept or discarded.">
             <div class="method-video">
-              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-05-autoresearch-progress.jpg">
-                <source src="media/rsi-05-autoresearch-progress.mp4" type="video/mp4">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-05-autoresearch-live-ssh.jpg?v=1">
+                <source src="media/rsi-05-autoresearch-live-ssh.mp4?v=1" type="video/mp4">
               </video>
               <div class="method-video-actions">
                 <button type="button" data-video-expand aria-label="Zoom EC2 Autoresearch video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
@@ -236,8 +242,8 @@
           </article>
           <article class="method-video-card loop-card" data-loop-index="2" data-loop-detail="The orchestrator versions Hermes SOUL.md in Supabase and reads its exact diff before editing the harness.">
             <div class="method-video">
-              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-02-pull-lessons.jpg?v=2">
-                <source src="media/rsi-02-pull-lessons.mp4?v=2" type="video/mp4">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-02-memory-hash-live-ssh.jpg?v=1">
+                <source src="media/rsi-02-memory-hash-live-ssh.mp4?v=1" type="video/mp4">
               </video>
               <div class="method-video-actions">
                 <button type="button" data-video-expand aria-label="Zoom Memory Audit video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
@@ -260,8 +266,8 @@
           </article>
           <article class="method-video-card loop-card" data-loop-index="4" data-loop-detail="Supabase recalls user feedback, preference signals, prior experiments, and previously successful lessons before proposing a change.">
             <div class="method-video">
-              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-01-discord-digest.jpg?v=3">
-                <source src="media/rsi-01-discord-digest.mp4?v=3#t=4" type="video/mp4">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-05-supabase-recall.jpg?v=1">
+                <source src="media/rsi-05-supabase-recall.mp4?v=1" type="video/mp4">
               </video>
               <div class="method-video-actions">
                 <button type="button" data-video-expand aria-label="Zoom Recall Evidence video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
@@ -272,8 +278,8 @@
           </article>
           <article class="method-video-card loop-card" data-loop-index="5" data-loop-detail="Agents run bounded experiments against the same frozen cases: memory synthesis, distillation, retrieval, and harness-component swaps.">
             <div class="method-video">
-              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-05-autoresearch-progress.jpg">
-                <source src="media/rsi-05-autoresearch-progress.mp4" type="video/mp4">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-05-autoresearch-live-ssh.jpg?v=1">
+                <source src="media/rsi-05-autoresearch-live-ssh.mp4?v=1" type="video/mp4">
               </video>
               <div class="method-video-actions">
                 <button type="button" data-video-expand aria-label="Zoom Run Experiments video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
@@ -306,10 +312,10 @@
             </div>
             <h3>Verifiers Judge</h3>
           </article>
-          <article class="method-video-card loop-card" data-loop-index="8" data-loop-detail="Only models or harness components that improve the five metrics are promoted. The prior champion remains available for quick rollback.">
+          <article class="method-video-card loop-card" data-loop-index="8" data-loop-detail="Core Pareto gate: decision quality +0.005, no safety drop, and latency no worse than 1.3× champion. Nightly promotion also requires a supported +0.01 gain; a >0.02 regression rolls back.">
             <div class="method-video">
-              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-04-discord-approval.jpg?v=2">
-                <source src="media/rsi-04-discord-approval.mp4?v=2#t=3" type="video/mp4">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-02-memory-hash-live-ssh.jpg?v=1">
+                <source src="media/rsi-02-memory-hash-live-ssh.mp4?v=1#t=4" type="video/mp4">
               </video>
               <div class="method-video-actions">
                 <button type="button" data-video-expand aria-label="Zoom Promote Harness video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
@@ -318,7 +324,7 @@
             </div>
             <h3>Promote Harness</h3>
           </article>
-          <article class="method-video-card loop-card" data-loop-index="9" data-loop-detail="The promoted result and a digestible evaluation summary are posted to Discord #eval so humans can monitor the change.">
+          <article class="method-video-card loop-card" data-loop-index="9" data-loop-detail="Promotions and periodic checkpoints open titled threads in the Discord #eval forum with five metrics, before→after deltas, the experiment ID, decision, and rollback state.">
             <div class="method-video">
               <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-04-discord-approval.jpg?v=2">
                 <source src="media/rsi-04-discord-approval.mp4?v=2" type="video/mp4">
@@ -332,8 +338,8 @@
           </article>
           <article class="method-video-card loop-card" data-loop-index="10" data-loop-detail="Each week an agent synthesizes progress, checks in with a human, and turns corrections into the next cycle's evidence.">
             <div class="method-video">
-              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-01-discord-digest.jpg?v=3">
-                <source src="media/rsi-01-discord-digest.mp4?v=3#t=4" type="video/mp4">
+              <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-11-discord-human-review.jpg?v=1">
+                <source src="media/rsi-11-discord-human-review.mp4?v=1" type="video/mp4">
               </video>
               <div class="method-video-actions">
                 <button type="button" data-video-expand aria-label="Zoom Human Review video"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></button>
@@ -345,33 +351,6 @@
           </div>
         </div>
       </article>
-      <div class="verifier-section" id="evaluation-grid">
-        <div class="section-title">
-          <p class="eyebrow">Evaluation grid</p>
-          <h2>How every snapshot is scored</h2>
-          <p>The recursive-intelligence benchmark compresses each run into a 0–100 value score, measured at Day 0 (base) and Day 2 (post-learning) on the same frozen 15-question golden set.</p>
-        </div>
-        <p class="definition"><strong>Value = 0.5 × Accuracy + 0.2 × Speed + 0.3 × Platform intelligence</strong> — scored by Verifiers + an LLM judge against the frozen golden dataset. Accumulated lessons are the only thing allowed to change between snapshots.</p>
-        <div class="score-grid">
-          <div><span>w₁ = 0.5</span><i class="fa-solid fa-bullseye"></i><h3>Accuracy</h3><p>Agent's reported price vs the true landed price, including shipping and hidden checkout fees.</p><p>≤1% error → 100 pts · ≤10% → 50 pts · &gt;10% → 0 pts</p></div>
-          <div><span>w₂ = 0.2</span><i class="fa-solid fa-stopwatch"></i><h3>Speed</h3><p>How long the agent takes to detect a live price change on monitored listings.</p><p>≤5 min → 100 pts · ≤1 h → 50 pts · missed → 0 pts</p></div>
-          <div><span>w₃ = 0.3</span><i class="fa-solid fa-store"></i><h3>Platform intelligence</h3><p>Does the pick match the buyer's implicit intent — new/warranty vs used/graded vs bulk sourcing?</p><p>Ideal platform → 100 pts · sub-optimal → 50 pts · nonsensical → 0 pts</p></div>
-        </div>
-      </div>
-      <div class="dataset-section">
-        <div class="section-title">
-          <p class="eyebrow">Golden dataset</p>
-          <h2>15 frozen sourcing questions</h2>
-          <p>The exact same questions at Day 0 and Day 2 — only the accumulated lessons differ, so any delta is learning, not luck.</p>
-        </div>
-        <div class="split-stack">
-          <p><b>A · New &amp; warranty-critical (3)</b><span>Sealed RTX 5080, AppleCare-eligible M4 MacBook, B&amp;H Payboo tax workaround — fails if routed to grey-market resellers.</span></p>
-          <p><b>B · Secondhand &amp; grading (4)</b><span>Open-box with remaining warranty, certified refurb fleets, for-parts GPUs, verified peer-to-peer — fails on unverified auctions and stock-image liquidators.</span></p>
-          <p><b>C · Bulk sourcing &amp; lead time (3)</b><span>20-kit rush builds, 100-unit factory-direct orders, escrow-protected imports — fails when lead time or buyer protection is ignored.</span></p>
-          <p><b>D · Niche, legacy &amp; scams (5)</b><span>Legacy motherboards, regional liquidation arbitrage, counterfeit-flagging, price-match policy checks, SMD component sourcing — fails on blind retail defaults.</span></p>
-        </div>
-        <p class="panel-note"><i class="fa-solid fa-book"></i> Full rubric and all 15 test cases: docs/recursive_intelligence_evaluation.md — Day 0 → Day 2 deltas surface on the Leaderboard and in Discord via /benchmark.</p>
-      </div>
     </section>
 
     <section class="page simple-page" id="settings-page">
@@ -383,7 +362,7 @@
   <dialog class="video-zoom" id="video-zoom" aria-labelledby="video-zoom-title">
     <div class="video-zoom-shell">
       <header>
-        <div><p class="eyebrow">Methodology demo</p><h2 id="video-zoom-title">Workflow recording</h2></div>
+        <div><p class="eyebrow">Live infrastructure</p><h2 id="video-zoom-title">Workflow recording</h2></div>
         <div>
           <button type="button" id="video-zoom-fullscreen" aria-label="Show expanded demo fullscreen"><i class="fa-solid fa-expand"></i></button>
           <button type="button" id="video-zoom-close" aria-label="Close expanded demo"><i class="fa-solid fa-xmark"></i></button>
@@ -396,6 +375,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js"></script>
-  <script src="app.js?v=24"></script>
+  <script src="app.js?v=25"></script>
 </body>
 </html>

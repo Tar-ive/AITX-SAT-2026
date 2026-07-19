@@ -1,12 +1,13 @@
-# Recursive Intelligence Evaluation & Snapshot Benchmark Plan
+# Recursive Intelligence Evaluation
 
-This document outlines the testing methodology, evaluation criteria, and demo-driven execution plan for competing in the **Recursive Intelligence Track** at the hackathon.
+This is the evaluation contract for the running EC2 AutoResearch loops, the
+Supabase experiment registry, the Evals UI, and Discord `#eval`.
 
 ---
 
 ## 1. The Mathematical Value Function
 
-To prove that the agent is recursively improving over a 48-hour period, we evaluate its performance using a compressed score between 0 and 100:
+The original hackathon score compresses a run to 0–100:
 
 $$\text{Value} = w_1 \cdot \text{Accuracy} + w_2 \cdot \text{Speed} + w_3 \cdot \text{Platform}$$
 
@@ -34,6 +35,15 @@ This tests if the agent targets the correct marketplace type based on the user's
 *   Matches the ideal platform category exactly: $100\text{ points}$
 *   Finds the item but on a sub-optimal platform type: $50\text{ points}$
 *   Fails to find the item or selects a nonsensical platform: $0\text{ points}$
+
+The live Evals UI preserves the five underlying measurements instead of hiding
+them inside one composite:
+
+1. Decision quality
+2. Seconds per answer
+3. Prompt injection risk
+4. Hermes episodic-memory diff lines
+5. Agent knowledge regression
 
 ---
 
@@ -111,34 +121,80 @@ These 15 test cases are run against the agent at **Day 0 (Base)** and **Day 2 (P
 
 ---
 
-## 3. The 48-Hour Learning & Reflection Loop
+## 3. Continuous AutoResearch
 
-1.  **Day 0 (Snapshot v1.0 - Base):** The agent runs the 15-question benchmark. Performance is scored by an LLM-as-a-Judge using the Value Function formula. Result is recorded as the **Baseline**.
-2.  **Interactive Training Phase:** As the developer interacts with the agent in Discord over the 2-day period, mistakes are flagged. When the user corrects a path (e.g. explaining why B&H Payboo is better for tax optimization than Amazon), the agent's **Critic (Sage)** intercepts:
-    *   It generates a self-reflection prompt detailing the mistake.
-    *   It extracts the general rule and appends it to `docs/memory_buffer.txt`.
-3.  **Day 2 (Snapshot v1.1 - Mutated):** The agent is re-evaluated on the exact same 15 questions. The system prompt incorporates `docs/memory_buffer.txt`.
+Two real loops feed the same Supabase registry:
 
----
+- `cursor-karpathy` runs branch → mutate → evaluate → merge/revert experiments.
+- `autoresearch-v2` re-evaluates champion and candidate on the same cases each
+  cycle so provider noise largely cancels.
 
-## 4. Visualizing the Demo in Discord
+The v2 loop reads accepted hypotheses from Supabase, measures real answer time,
+stores every candidate, and promotes only when the paired decision-quality
+margin is at least `+0.01` with at least 80% valid case coverage. The general
+boundaries in `autoresearch/improvement-boundaries.json` additionally require:
 
-### The `/benchmark` Command
-When invoked, the bot runs the test suite and prints a formatted summary comparing the snapshots:
+- decision quality gain of at least `0.005`;
+- no prompt-injection-risk increase;
+- zero knowledge regression;
+- seconds per answer no worse than `1.3×` the champion.
 
-```
-📊 HACKATHON BENCHMARK SCORECARD: RECURSIVE INTELLIGENCE
-------------------------------------------------------------
-[Snapshot v1.0 - Day 0]     [■■■■■■□□□□] 56/100 Points
-[Snapshot v1.1 - Day 2]     [■■■■■■■■■□] 88/100 Points (+32%)
+A candidate that fails remains visible as negative research evidence. It does
+not move the champion line.
 
-📈 Metric Deltas:
-• Landed Price Accuracy:  v1.0: 60%  -->  v1.1: 96% (+36%)
-• Platform Intelligence:  v1.0: 50%  -->  v1.1: 80% (+30%)
-• False Positive Rate:   v1.0: 30%  -->  v1.1: 5%  (-25%)
+## 4. Hash write and promotion provenance
 
-🧠 Accumulated Rules (docs/memory_buffer.txt):
-1. "Escrow guarantees are mandatory for bulk Emulation GPU kits."
-2. "New MacBook Pro buyers seeking AppleCare must bypass Swappa."
-3. " Digikey handles Logic Board capacitors; ignore retail overlays."
-```
+`autoresearch/scripts/promote_to_soul.py` makes memory promotion idempotent:
+
+1. Normalize every promoted lesson.
+2. Hash each normalized line with SHA-256 and keep a 12-character content ID.
+3. Union new hashes with the latest Hermes SOUL; rerunning cannot duplicate a
+   lesson.
+4. Write a new version to `public.agent_soul`.
+5. Store the experiment ID and Git ref in the SOUL summary.
+
+This gives each promoted memory change three identities: experiment ID, Git
+commit, and content hash. The Evals API exposes the latest SOUL version,
+diff-line count, and Git hash. Hovering the Memory Audit or Promote Harness card
+shows that provenance in the methodology circle.
+
+## 5. Prompt-injection evaluation
+
+The promotion scan is defense in depth:
+
+- HiddenLayer analyzes the model interaction for prompt injection.
+- Policy checks detect malicious listing instructions.
+- OpenShell enforces the outbound network allowlist even if the model complies.
+
+The combined metric is stored as prompt-injection risk. A missing scan stays
+unmeasured; it is never silently converted into a passing value.
+
+## 6. Discord `#eval`
+
+`#eval` is a Discord forum, so each report is a titled thread rather than a
+plain channel message. After a promotion, and at configured checkpoints, the
+loop posts:
+
+- experiment and decision;
+- all five metrics and deltas;
+- promoted, held, or rolled-back state;
+- hypothesis and evidence summary.
+
+Human replies remain attached to that evaluation and become evidence for later
+cycles. Credentials are not written to the post.
+
+## 7. Real-data UI and caching
+
+The Evals UI reads timestamped rows from `public.harness_experiments`,
+`public.agent_soul`, and, when present, `public.evaluation_samples`.
+
+- The initial endpoint returns graph summaries only.
+- Detailed rollout samples load when the evidence drawer is opened.
+- A 45-second process cache prevents repeated Supabase queries.
+- Vercel receives `s-maxage=45, stale-while-revalidate=300`.
+- The browser renders its last verified payload immediately, then refreshes in
+  the background.
+
+Charts show every evaluated candidate as a gray point and only accepted
+experiments as the green champion staircase. This prevents rejected experiments
+from looking like improvements.

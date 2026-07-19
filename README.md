@@ -167,6 +167,47 @@ dedicated injection suite runs. It is not inferred from platform-policy errors.
 
 [Watch the recorded UI walkthrough](frontend/media/rsi-loop-live.mp4)
 
+### Live recursive-intelligence evidence
+
+The screenshots below are from the running infrastructure, not fixtures.
+
+| AutoResearch v2 | Hash-merged Hermes SOUL |
+|---|---|
+| ![Paired AutoResearch cycles reading Supabase hypotheses](output/infrastructure-proof/08-autoresearch-v2-live.png) | ![Promoted experiment written to the versioned SOUL with a Git ref](output/infrastructure-proof/09-soul-hash-merge-live.png) |
+
+| OpenShell enforcement | HiddenLayer evaluation | EC2 failure-stop gate |
+|---|---|---|
+| ![OpenShell denies an unapproved Hermes exfiltration route while Discord remains allowed](output/infrastructure-proof/05-openshell-hermes-policy-denial.png) | ![HiddenLayer detects the adversarial Hermes prompt](output/infrastructure-proof/06-hiddenlayer-hermes-prompt-injection.png) | ![AutoResearch evaluates, reverts, and pauses after repeated failures](output/infrastructure-proof/07-ec2-autoresearch-eval-loop.png) |
+
+There are two measured loops: the branch-isolated `cursor-karpathy` loop and the
+paired `autoresearch-v2` loop. Both write timestamped candidates to
+`public.harness_experiments`; rejected candidates remain visible, while only
+accepted experiments advance the green champion staircase.
+
+![Cached live Supabase Evals graphs](output/playwright/evals-cached-live-graphs.png)
+
+Promotion is traceable. `promote_to_soul.py` hash-unions normalized lesson lines,
+writes a new `public.agent_soul` version, and records the experiment and Git ref.
+An otherwise eligible v2 candidate must pass the combined injection scan before
+promotion; the accepted result then opens a titled thread in Discord `#eval`.
+
+![Methodology hover showing SOUL version and Git provenance](output/playwright/methodology-hash-promotion.png)
+
+### Why Evals is fast now
+
+The previous route returned up to 500 raw rollout rows, opened several Supabase
+connections, and sent `Cache-Control: no-store`. The current path:
+
+1. reuses one Supabase connection for the graph snapshot;
+2. keeps the result in process memory for 45 seconds;
+3. enables Vercel CDN stale-while-revalidate caching;
+4. renders a verified browser cache immediately and refreshes in the background;
+5. loads raw episode/rollout evidence only when its drawer is opened.
+
+If `public.evaluation_samples` has not been created, the graphs still use the
+real experiment and SOUL tables; detailed samples remain empty rather than
+breaking the whole Evals page.
+
 ### How evidence reaches a research point
 
 1. Discord exchanges are normalized into `public.episodes`; Hermes preference
