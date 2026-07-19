@@ -8,6 +8,7 @@ const catalog={
 const state={category:"gpu",market:null,deals:[],dealFilter:"all",experiments:null,limit:3};
 let marketChart,toastTimer;
 const karpathyCharts={};
+const EVAL_CACHE_KEY="aitx-evals-summary-v3", EVAL_CACHE_MAX_AGE=15*60*1000;
 
 const money=(n,currency="USD")=>new Intl.NumberFormat("en-US",{style:"currency",currency,maximumFractionDigits:n<1000?2:0}).format(n);
 const esc=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
@@ -15,6 +16,8 @@ const safeUrl=value=>{try{const url=new URL(value);return["http:","https:"].incl
 const relativeTime=value=>{const minutes=Math.max(0,Math.round((Date.now()-new Date(value))/60000));return minutes<1?"just now":minutes<60?`${minutes} min ago`:`${Math.round(minutes/60)}h ago`};
 const sourceNote=row=>`${row.source_name} · ${row.collection_method==="scraped"?"scraped via Apify":"official API"}`;
 const showToast=message=>{const el=$("#toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2600)};
+const readEvalCache=()=>{try{const hit=JSON.parse(localStorage.getItem(EVAL_CACHE_KEY));return hit&&Date.now()-hit.savedAt<EVAL_CACHE_MAX_AGE?hit.payload:null}catch{return null}};
+const writeEvalCache=payload=>{try{localStorage.setItem(EVAL_CACHE_KEY,JSON.stringify({savedAt:Date.now(),payload}))}catch{}};
 
 async function api(path){
   const response=await fetch(`${API_BASE}${path}`,{headers:{"Accept":"application/json"}});
@@ -78,7 +81,6 @@ function renderMarket(payload){
   const rows=payload.listings, meta=payload.meta, product=catalog[state.category], target=+$("#target-price").value;
   const prices=rows.map(row=>row.total_price), best=prices.length?Math.min(...prices):null, max=prices.length?Math.max(...prices):null;
   $("#data-badge").innerHTML='<i class="fa-solid fa-database"></i> Live Supabase';
-  $("#sync-status").innerHTML=`<span class="live-dot"></span> Hosted Supabase refreshed <strong>${relativeTime(meta.last_synced_at)}</strong>`;
   $("#chart-title").textContent=`${product.label} current price spread`;
   $("#best-price").textContent=best==null?"—":money(best);
   $("#target-display").textContent=money(target);
@@ -105,7 +107,6 @@ async function loadMarket(category=state.category){
     renderMarket(payload);
   }catch(error){
     $("#data-badge").innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> API unavailable';
-    $("#sync-status").innerHTML='<span class="error-dot"></span> Hosted Supabase connection failed';
     renderMarket({listings:[],meta:{last_synced_at:new Date().toISOString(),source_count:0,sources:[],successful_syncs:0}});
     showToast(error.message);
   }
@@ -164,11 +165,14 @@ function renderResearchDetail(exp,metric="accuracy",previous=null){
     `${meta.label}: ${value===null?"not measured":meta.format(value)}`,
     `Δ ${delta===null?"—":`${delta>=0?"+":""}${meta.format(delta)}`}`
   ].join(" · ");
-  $("#research-detail-source").textContent=[evidence.source,evidence.source_detail].filter(Boolean).join(" · ")||"Live EC2 experiment";
+  $("#research-detail-source").textContent=[evidence.source,evidence.source_detail,evidence.git_hash&&`git ${evidence.git_hash}`].filter(Boolean).join(" · ")||"Live EC2 experiment";
   $("#research-detail-change").textContent=evidence.improvement||exp.description||"No harness change recorded.";
   $("#research-detail-preference").textContent=evidence.preference||"No explicit preference attached to this trial.";
+  const coverage=exp.episodes_tried||exp.rollouts||exp.stored_samples
+    ?`${exp.episodes_tried||0} episodes · ${exp.rollouts||0} rollouts · ${exp.stored_samples||0} stored samples`
+    :"Episode and rollout counts were not persisted for this cycle";
   $("#research-detail-test").textContent=[
-    `${exp.episodes_tried||0} episodes · ${exp.rollouts||0} rollouts · ${exp.stored_samples||0} stored samples`,
+    coverage,
     evidence.memory_change,
     evidence.tested_by
   ].filter(Boolean).join(" · ");
@@ -179,25 +183,36 @@ function renderKarpathyChart(canvasId, experiments, metric, opts={}){
   const canvas=$(`#${canvasId}`);
   if(!canvas||!window.Chart)return;
   const values=experiments.map(exp=>measured(exp[metric])?Number(exp[metric]):null);
-  const colors=experiments.map(exp=>exp.rolled_back?"#a64c3c":exp.kept||exp.accepted?"#28754c":"#fffdf7");
-  const borders=experiments.map(exp=>exp.rolled_back?"#a64c3c":exp.kept||exp.accepted?"#28754c":"#171711");
+  let champion=null;
+  const championValues=experiments.map((exp,index)=>{
+    if(values[index]!==null&&(exp.kept||exp.accepted))champion=values[index];
+    return champion;
+  });
   karpathyCharts[canvasId]?.destroy();
   karpathyCharts[canvasId]=new Chart(canvas,{
     type:"line",
     data:{
       labels:experiments.map(exp=>evalTime(exp.ts)),
       datasets:[{
-        label:"Measured eval",
+        label:"Evaluated",
         data:values,
+        showLine:false,
+        pointRadius:3,
+        pointHoverRadius:7,
+        pointBackgroundColor:experiments.map(exp=>exp.rolled_back?"#a64c3c":"#c9c5ba"),
+        pointBorderColor:experiments.map(exp=>exp.rolled_back?"#a64c3c":"#c9c5ba")
+      },{
+        label:"Promoted champion",
+        data:championValues,
         borderColor:"#28754c",
-        borderWidth:2.4,
-        pointRadius:6,
-        pointHoverRadius:8,
-        pointBackgroundColor:colors,
-        pointBorderColor:borders,
+        borderWidth:2.5,
+        pointRadius:experiments.map(exp=>exp.kept||exp.accepted?5:0),
+        pointHoverRadius:experiments.map(exp=>exp.kept||exp.accepted?7:0),
+        pointBackgroundColor:"#fffdf7",
+        pointBorderColor:"#28754c",
         pointBorderWidth:2,
-        spanGaps:true,
-        tension:.18
+        stepped:"after",
+        spanGaps:true
       }]
     },
     options:{
@@ -302,14 +317,20 @@ function renderExperiments(payload){
     knowledge_regression:Number(exp.knowledge_regression??exp.agent_regression??0)
   }));
   const s=payload.summary||{};
+  const loops=payload.loops||{};
   const sourceLabel=payload.source||"live Supabase evaluations";
-  $("#improvement-evidence").textContent=`${s.experiments||exps.length} evals · ${s.episodes_tried||0} episodes · ${s.rollouts||0} rollouts · ${sourceLabel}`;
+  $("#improvement-evidence").textContent=`${s.experiments||exps.length} evals · ${loops.sources?.length||0} loop sources · ${sourceLabel}`;
   $("#seed-value").textContent=sourceLabel;
   $("#seed-eval-count").textContent=String(s.experiments??exps.length);
-  $("#seed-episode-count").textContent=String(s.episodes_tried??0);
-  $("#seed-rollout-count").textContent=String(s.rollouts??0);
+  $("#seed-kept-count").textContent=String(s.kept??exps.filter(exp=>exp.kept).length);
+  $("#seed-loop-count").textContent=String(loops.sources?.length??0);
   const note=payload.seed_justification?.supabase_note||"";
-  $("#seed-note").textContent=`${note||"Measured evaluation history from Supabase."} · ${s.stored_samples||0}/${s.rollouts||0} raw rollout samples persisted.`;
+  $("#seed-note").textContent=[
+    note||"Measured evaluation history from Supabase.",
+    loops.latest_experiment_id&&`latest ${loops.latest_experiment_id} · ${relativeTime(loops.latest_experiment_at)}`,
+    s.episodes_tried||s.rollouts?`${s.episodes_tried||0} episodes · ${s.rollouts||0} rollouts`:"older cycle coverage was not persisted",
+    "45s server/CDN cache · instant browser cache"
+  ].filter(Boolean).join(" · ");
   $("#acc-delta").textContent=`${(s.accuracy_start??0).toFixed(3)} → ${(s.accuracy_now??0).toFixed(3)}`;
   $("#ret-delta").textContent=measured(s.retrieval_start)&&measured(s.retrieval_now)?`${Number(s.retrieval_start).toFixed(1)}s → ${Number(s.retrieval_now).toFixed(1)}s`:"not measured";
   $("#injection-delta").textContent=measured(s.prompt_injection_risk_start)&&measured(s.prompt_injection_risk_now)?`${Number(s.prompt_injection_risk_start).toFixed(1)} → ${Number(s.prompt_injection_risk_now).toFixed(1)}`:"not measured";
@@ -323,16 +344,49 @@ function renderExperiments(payload){
   renderKarpathyChart("chart-memory", exps, "episodic_diff_lines", {yLabel:"Hermes memory diff lines"});
   renderKarpathyChart("chart-knowledge", exps, "knowledge_regression", {yLabel:"Agent knowledge regression"});
   renderResearchDetail(exps.at(-1),"accuracy",exps.at(-2));
-  renderEvalResults(exps);
+  updateMethodologyEvidence(payload);
 }
 
 async function loadExperiments(){
+  const cached=readEvalCache();
+  if(cached)renderExperiments(cached);
   try{
-    renderExperiments(await api("/api/autoresearch-experiments"));
+    const payload=await api("/api/autoresearch-experiments?detail=summary");
+    writeEvalCache(payload);
+    renderExperiments(payload);
   }catch(error){
-    $("#improvement-evidence").textContent="Supabase evaluation history unavailable";
-    $("#seed-note").textContent=error.message;
+    if(!cached){
+      $("#improvement-evidence").textContent="Supabase evaluation history unavailable";
+      $("#seed-note").textContent=error.message;
+    }
   }
+}
+
+async function loadExperimentDetails(){
+  if(state.experimentsDetailLoaded)return;
+  $("#eval-results").innerHTML='<p class="eval-results-empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading detailed Supabase evidence…</p>';
+  try{
+    const payload=await api("/api/autoresearch-experiments?detail=full");
+    renderEvalResults(payload.experiments||[]);
+    state.experimentsDetailLoaded=true;
+  }catch(error){
+    $("#eval-results").innerHTML=`<p class="eval-results-empty">${esc(error.message)}</p>`;
+  }
+}
+
+function updateMethodologyEvidence(payload){
+  const loops=payload.loops||{}, promotion=payload.promotion||{}, soul=loops.latest_soul||{};
+  const details={
+    0:`${payload.summary?.experiments||0} persisted experiments across ${loops.sources?.length||0} live sources. Latest: ${loops.latest_experiment_id||"waiting"} from ${loops.latest_source||"EC2"} (${relativeTime(loops.latest_experiment_at)}).`,
+    2:`Hermes SOUL v${soul.version??"—"} wrote ${soul.diff_lines??0} diff lines. Latest promoted memory provenance: ${loops.git_hash?`git ${loops.git_hash}`:"hash pending"} · ${soul.summary||"Supabase versioned memory"}.`,
+    8:`${promotion.pareto||"Only measured improvements advance."} ${promotion.nightly||"The prior champion remains available for rollback."}`,
+    9:promotion.discord||"Evaluation summaries are posted as titled threads in the Discord #eval forum."
+  };
+  Object.entries(details).forEach(([index,detail])=>{
+    const card=$(`.loop-card[data-loop-index="${index}"]`);
+    if(card)card.dataset.loopDetail=detail;
+  });
+  if($("#loop-step-label")?.textContent.startsWith("Step 01"))$("#loop-step-detail").textContent=details[0];
 }
 
 async function loadRsiIdeas(){
@@ -507,6 +561,7 @@ $("#video-zoom-close").addEventListener("click",()=>zoom.close());
 $("#video-zoom-fullscreen").addEventListener("click",()=>enterFullscreen(zoomStage));
 zoom.addEventListener("click",event=>{if(event.target===zoom)zoom.close()});
 zoom.addEventListener("close",()=>{const video=$("video",zoomStage);video?.pause();zoomStage.replaceChildren()});
+$("#eval-results-shell").addEventListener("toggle",event=>{if(event.currentTarget.open)loadExperimentDetails()});
 window.addEventListener("hashchange",()=>showPage(location.hash.slice(1)||"dashboard"));
 
 initRsiLoop();

@@ -58,6 +58,9 @@ NVIDIA = os.environ.get("NVIDIA_INFERENCE_API_KEY") or os.environ.get("NVIDIA_AP
 OPENROUTER = os.environ.get("OPENROUTER_API_KEY", "")
 OPENCODE = os.environ.get("OPENCODE_API_KEY", "")
 COORD = os.environ.get("COORDINATOR_URL", "").rstrip("/")
+BOUNDARIES = json.loads(
+    (REPO / "autoresearch" / "improvement-boundaries.json").read_text()
+)
 
 
 def envq(n, d=""):
@@ -73,6 +76,15 @@ def psql(sql, out=True):
     r = subprocess.run(["psql", DSN, "-t", "-A", "-c", sql], capture_output=True, text=True,
                        env={**os.environ, "PGPASSWORD": envq("SUPABASE_DB_PW")})
     return r.stdout.strip() if out else r.returncode
+
+
+def git_ref():
+    try:
+        return subprocess.check_output(
+            ["git", "-C", str(REPO), "rev-parse", "--short", "HEAD"], text=True
+        ).strip()
+    except subprocess.SubprocessError:
+        return ""
 
 
 BASE_SYSTEM = ("You are a GPU purchase-decision judge. Given a buyer request, output ONLY "
@@ -171,6 +183,18 @@ def seed_hypotheses():
     return [h for h in rows.splitlines() if h.strip()]
 
 
+def champion_injection_risk():
+    raw = psql(
+        "select prompt_injection_risk from public.harness_experiments "
+        "where accepted and prompt_injection_risk is not null "
+        "order by created_at desc limit 1;"
+    )
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return None
+
+
 def mutate(champion, seeds, cycle):
     prompt = (f"Improve this GPU purchase-decision policy. It is scored on decision quality, "
               f"speed, injection resistance, and no regression.\n\nCURRENT:\n{champion or '(empty)'}\n\n"
@@ -185,17 +209,27 @@ def mutate(champion, seeds, cycle):
     return re.sub(r"<think>.*?</think>", "", t, flags=re.DOTALL).strip()
 
 
-def record(exp_id, action, hyp, dq, sec, inj, mem, reg, accepted, source="autoresearch-v2"):
+def record(exp_id, action, hyp, dq, sec, inj, mem, reg, accepted, *,
+           episodes, rollouts, champion_score, margin, source="autoresearch-v2"):
     """Record all FIVE metrics: decision_quality, seconds_per_answer,
     prompt_injection_risk, memory_diff_lines, knowledge_regression."""
     def lit(s):
         return "$v$" + str(s).replace("$", "") + "$v$"
     injv = "null" if inj is None else inj
+    metadata = json.dumps({
+        "provenance": "paired-live-eval",
+        "episodes_tried": episodes,
+        "rollouts": rollouts,
+        "champion_score": champion_score,
+        "paired_margin": margin,
+        "git_hash": git_ref(),
+    })
     psql(f"insert into public.harness_experiments (experiment_id,action,hypothesis,"
          f"decision_quality,seconds_per_answer,forbidden_platform_risk,prompt_injection_risk,"
-         f"memory_diff_lines,knowledge_regression,accepted,source_box) values "
+         f"memory_diff_lines,knowledge_regression,accepted,source_box,metadata) values "
          f"({lit(exp_id)},{lit(action)},{lit(hyp)},{dq},{sec},{injv if injv!='null' else 0},{injv},"
-         f"{mem},{reg},{str(accepted).lower()},{lit(source)}) on conflict (experiment_id) do nothing;",
+         f"{mem},{reg},{str(accepted).lower()},{lit(source)},{lit(metadata)}::jsonb) "
+         f"on conflict (experiment_id) do nothing;",
          out=False)
     if COORD:
         try:
@@ -227,18 +261,29 @@ def main():
         cand = mutate(champion, seeds, cycle)
         # PAIRED eval: same cases, both policies, this round — noise cancels.
         cand_dq, nc, cand_sec = evaluate(cand, GOLDEN)
-        champ_dq, nch, _ = evaluate(champion, GOLDEN)
+        champ_dq, nch, champ_sec = evaluate(champion, GOLDEN)
         margin = round(cand_dq - champ_dq, 4)
         # Promote only if BOTH: (a) genuinely better THIS round (paired, noise-
         # cancelled) AND (b) not below the champion's best-established score.
-        confirmed_better = margin >= 0.01
+        quality_ok = margin >= 0.01
         no_regression = cand_dq >= champ_best - 0.005
-        accepted = confirmed_better and no_regression and nc >= 0.8 * len(GOLDEN)
+        coverage_ok = nc >= 0.8 * len(GOLDEN)
+        latency_ok = not champ_sec or cand_sec <= 1.3 * champ_sec
         exp_id = f"v2-c{cycle}-{int(cand_dq*1000)}"
-        # 4 of 5 metrics every cycle; the 5th (injection) is expensive so it
-        # runs only on promotion, when a real change is worth the full scan.
+        # The expensive injection scan runs only after the paired quality,
+        # coverage, and latency gates pass, but before promotion is committed.
         inj = mem = None
-        reg = round(min(0.0, margin), 4) if margin < 0 else 0.0  # regression only if worse
+        reg = round(abs(min(0.0, margin)), 4)  # positive regression magnitude
+        if quality_ok and coverage_ok and latency_ok and reg == 0:
+            inj = injection_risk()
+        prior_inj = champion_injection_risk()
+        injection_limit = BOUNDARIES["metrics"]["prompt_injection_risk"]["hard_ceiling"]
+        injection_ok = (
+            inj is not None
+            and inj <= injection_limit
+            and (prior_inj is None or inj <= prior_inj)
+        )
+        accepted = quality_ok and no_regression and coverage_ok and latency_ok and reg == 0 and injection_ok
         if accepted:
             champion = cand
             champ_best = max(champ_best, cand_dq)  # ratchet the ceiling UP only
@@ -246,15 +291,23 @@ def main():
             rec = REPO / "autoresearch" / "scripts" / "promote_to_soul.py"
             if rec.exists():
                 p = subprocess.run(["python3", str(rec), "--agent", "hermes", "--lessons",
-                                    str(champ_file), "--experiment", exp_id], capture_output=True, text=True)
+                                    str(champ_file), "--experiment", exp_id,
+                                    "--git-ref", git_ref()], capture_output=True, text=True)
                 m = re.search(r"merged (\d+) new", p.stdout)
                 mem = int(m.group(1)) if m else 0
-            inj = injection_risk()  # full defense-in-depth scan on the new champion
         record(exp_id, "mutate_policy", (cand.splitlines() or ["(empty)"])[0][:120],
-               cand_dq, cand_sec, inj, mem or 0, reg, accepted)
-        why = "" if accepted else (" (below best)" if confirmed_better and not no_regression else "")
+               cand_dq, cand_sec, inj, mem or 0, reg, accepted,
+               episodes=len(GOLDEN), rollouts=nc, champion_score=champ_dq, margin=margin)
+        why = "" if accepted else (" (below best)" if quality_ok and not no_regression else "")
         print(f"[v2] cycle {cycle}: cand={cand_dq:.3f} champ={champ_dq:.3f} best={champ_best:.3f} "
               f"margin={margin:+.3f} {cand_sec:.1f}s/ans -> {'PROMOTE' if accepted else 'reject'}{why}", flush=True)
+        if quality_ok and not accepted:
+            print(
+                f"[v2] gate: coverage={coverage_ok} latency={latency_ok} "
+                f"injection={inj if inj is not None else 'unmeasured'} "
+                f"(champion={prior_inj if prior_inj is not None else 'none'})",
+                flush=True,
+            )
         if accepted:
             print(f"[v2] cycle {cycle}: PROMOTED (+{margin:.3f}) — SOUL +{mem} lines, "
                   f"injection_risk={inj}% — posting #eval", flush=True)

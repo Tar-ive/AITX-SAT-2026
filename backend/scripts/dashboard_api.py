@@ -7,10 +7,13 @@ import os
 import re
 import statistics
 import sys
+import time
+from collections import Counter
 from datetime import datetime, timezone
 from decimal import Decimal
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from threading import Lock
 from urllib.parse import parse_qs, urlparse
 
 import psycopg2
@@ -45,6 +48,22 @@ IMPROVEMENT_RUNS = [
     {"version": "v1.2", "label": "Better retrieval mix", "decision_quality": .701, "decision_ci": .020, "landed_price_error": 9.6, "landed_ci": .9, "latency": 1.98, "latency_ci": .24, "valid_url_rate": 93.5, "url_ci": 1.6, "unsupported_claims": 1.18, "claims_ci": .26, "forecast_regret": 72, "regret_ci": 11},
     {"version": "v1.1", "label": "Initial harness", "baseline": True, "decision_quality": .642, "decision_ci": .022, "landed_price_error": 11.3, "landed_ci": 1.0, "latency": 1.75, "latency_ci": .22, "valid_url_rate": 91.2, "url_ci": 1.7, "unsupported_claims": 1.73, "claims_ci": .30, "forecast_regret": 93, "regret_ci": 13},
 ]
+_CACHE = {}
+_CACHE_LOCK = Lock()
+EVALUATION_TABLES = ("evaluation_verifiers", "evaluation_samples")
+
+
+def cached(key, ttl_seconds, loader):
+    """Small process-local cache; CDN headers cover cold serverless instances."""
+    now = time.monotonic()
+    with _CACHE_LOCK:
+        hit = _CACHE.get(key)
+        if hit and hit["expires"] > now:
+            return hit["value"]
+    value = loader()
+    with _CACHE_LOCK:
+        _CACHE[key] = {"expires": now + ttl_seconds, "value": value}
+    return value
 
 
 def load_env():
@@ -299,9 +318,12 @@ def measured_radar():
     return measured
 
 
-def episodic_evidence(limit=16):
+def episodic_evidence(limit=16, connection=None):
     """Recent Discord/user evidence persisted in hosted Supabase."""
-    with database() as connection, connection.cursor(cursor_factory=RealDictCursor) as cursor:
+    if connection is None:
+        with database() as owned:
+            return episodic_evidence(limit, owned)
+    with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         cursor.execute(
             """
             select episode_id, channel, task_type, request, outcome, feedback,
@@ -318,11 +340,48 @@ def episodic_evidence(limit=16):
         ]
 
 
-def harness_experiments(limit=200):
-    """Measured evaluations and their explicit evidence links."""
-    with database() as connection, connection.cursor(cursor_factory=RealDictCursor) as cursor:
+def evaluation_table(cursor):
+    """Resolve the current rollout table name without mistaking indexes for tables."""
+    for table in EVALUATION_TABLES:
         cursor.execute(
             """
+            select exists (
+              select 1
+              from pg_catalog.pg_class c
+              join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+              where n.nspname = 'public' and c.relname = %s
+                and c.relkind in ('r', 'p', 'v', 'm')
+            ) as present
+            """,
+            (table,),
+        )
+        if cursor.fetchone()["present"]:
+            return table
+    return None
+
+
+def harness_experiments(limit=200, connection=None):
+    """Measured evaluations and their explicit evidence links."""
+    if connection is None:
+        with database() as owned:
+            return harness_experiments(limit, owned)
+    with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        samples_table = evaluation_table(cursor)
+        sample_join = """
+            left join (
+              select evaluation_id, count(*) as stored_samples,
+                     count(distinct episode_index) as stored_episodes
+              from public.{samples_table}
+              group by evaluation_id
+            ) s on s.evaluation_id = h.experiment_id
+        """.format(samples_table=samples_table) if samples_table else """
+            left join (
+              select null::text as evaluation_id, 0::bigint as stored_samples,
+                     0::bigint as stored_episodes
+            ) s on false
+        """
+        cursor.execute(
+            f"""
             select h.experiment_id, h.action, h.hypothesis, h.decision_quality,
                    h.seconds_per_answer, h.forbidden_platform_risk,
                    h.prompt_injection_risk, h.memory_diff_lines,
@@ -331,12 +390,7 @@ def harness_experiments(limit=200):
                    h.test_method, h.metadata, h.created_at,
                    s.stored_samples, s.stored_episodes
             from public.harness_experiments h
-            left join (
-              select evaluation_id, count(*) as stored_samples,
-                     count(distinct episode_index) as stored_episodes
-              from public.evaluation_samples
-              group by evaluation_id
-            ) s on s.evaluation_id = h.experiment_id
+            {sample_join}
             where coalesce(h.metadata->>'hidden_from_evals', 'false') <> 'true'
             order by h.created_at asc
             limit %s
@@ -349,11 +403,17 @@ def harness_experiments(limit=200):
         ]
 
 
-def evaluation_samples(limit=500):
+def evaluation_samples(limit=500, connection=None):
     """Compact, display-safe rollout details from the private sample store."""
-    with database() as connection, connection.cursor(cursor_factory=RealDictCursor) as cursor:
+    if connection is None:
+        with database() as owned:
+            return evaluation_samples(limit, owned)
+    with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        samples_table = evaluation_table(cursor)
+        if not samples_table:
+            return []
         cursor.execute(
-            """
+            f"""
             select evaluation_id, sample_index, episode_index, rollout_number,
                    decision_quality, seconds_per_answer, prompt_injection_risk,
                    platform_violation_risk, successful, evaluated_at,
@@ -363,7 +423,7 @@ def evaluation_samples(limit=500):
                      else payload->'prompt'->1->>'content'
                    end as prompt,
                    payload->'completion'->-1->>'content' as response
-            from public.evaluation_samples
+            from public.{samples_table}
             order by evaluated_at asc, evaluation_id, episode_index, rollout_number,
                      sample_index
             limit %s
@@ -430,9 +490,12 @@ def _group_evaluation_samples(rows):
     return output
 
 
-def soul_history(limit=50):
+def soul_history(limit=50, connection=None):
     """Versioned Hermes preferences; diff_lines is Evals metric four."""
-    with database() as connection, connection.cursor(cursor_factory=RealDictCursor) as cursor:
+    if connection is None:
+        with database() as owned:
+            return soul_history(limit, owned)
+    with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         cursor.execute(
             """
             select agent_name, version, diff_lines, summary, updated_at
@@ -482,13 +545,14 @@ def _registry_rows(rows):
             "accuracy": float(row.get("decision_quality") or 0),
             "retrieval_s": (
                 float(row["seconds_per_answer"])
-                if row.get("seconds_per_answer") is not None else None
+                if row.get("seconds_per_answer") is not None
+                and float(row["seconds_per_answer"]) > 0 else None
             ),
             "prompt_injection_risk": (
                 float(prompt_risk) if prompt_risk is not None else None
             ),
             "episodic_diff_lines": int(row.get("memory_diff_lines") or 0),
-            "knowledge_regression": float(row.get("knowledge_regression") or 0),
+            "knowledge_regression": abs(float(row.get("knowledge_regression") or 0)),
             "episodes_tried": int(
                 row.get("stored_episodes") or metadata.get("episodes_tried") or 0
             ),
@@ -497,11 +561,13 @@ def _registry_rows(rows):
             ),
             "failed_rollouts": int(metadata.get("failed_rollouts") or 0),
             "n": int(metadata.get("rollouts") or 0),
+            "source_box": row.get("source_box") or "unknown",
+            "git_hash": metadata.get("git_hash") or metadata.get("commit"),
         })
     return output
 
 
-def _experiment_payload(rows, source, episodes=None, registry=None, samples=None):
+def _experiment_payload(rows, source, episodes=None, registry=None, samples=None, soul=None):
     registry = registry or []
     sample_groups = _group_evaluation_samples(samples or [])
     registry_by_id = {row["experiment_id"]: row for row in registry}
@@ -537,7 +603,7 @@ def _experiment_payload(rows, source, episodes=None, registry=None, samples=None
             "prompt_injection_risk": row.get("prompt_injection_risk"),
             "episodic_diff_lines": memory_lines,
             "knowledge_regression": round(
-                float((recorded or {}).get("knowledge_regression") or max(0, -stability)),
+                abs(float((recorded or {}).get("knowledge_regression") or max(0, -stability))),
                 4,
             ),
             "episodes_tried": int(row.get("episodes_tried") or 0),
@@ -565,6 +631,7 @@ def _experiment_payload(rows, source, episodes=None, registry=None, samples=None
                 ),
                 "episode_ids": evidence_ids,
                 "research_urls": research_urls,
+                "git_hash": row.get("git_hash"),
             },
         })
     if not experiments:
@@ -580,6 +647,23 @@ def _experiment_payload(rows, source, episodes=None, registry=None, samples=None
         (row["prompt_injection_risk"] for row in reversed(experiments) if row["prompt_injection_risk"] is not None),
         None,
     )
+    source_counts = Counter(row.get("source_box") or "legacy" for row in experiments)
+    latest_soul = (soul or [])[-1] if soul else {}
+    hash_match = re.search(r"\bgit\s+([0-9a-f]{7,40})\b", latest_soul.get("summary", ""), re.I)
+    git_hash = hash_match.group(1) if hash_match else None
+    first_retrieval = next(
+        (row["retrieval_s"] for row in experiments if row.get("retrieval_s") is not None),
+        None,
+    )
+    latest_retrieval = next(
+        (row["retrieval_s"] for row in reversed(experiments) if row.get("retrieval_s") is not None),
+        None,
+    )
+    if git_hash:
+        for row in reversed(experiments):
+            if row.get("version") and row["version"] in latest_soul.get("summary", ""):
+                row["evidence"]["git_hash"] = git_hash
+                break
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source": source,
@@ -589,37 +673,70 @@ def _experiment_payload(rows, source, episodes=None, registry=None, samples=None
             "kept": len(kept),
             "accuracy_start": first["accuracy"],
             "accuracy_now": current["accuracy"],
-            "retrieval_start": first.get("retrieval_s", 0),
-            "retrieval_now": current.get("retrieval_s", 0),
+            "retrieval_start": first_retrieval,
+            "retrieval_now": latest_retrieval,
             "prompt_injection_risk_start": first_prompt_risk,
             "prompt_injection_risk_now": latest_prompt_risk,
             "episodic_diff_start": first["episodic_diff_lines"],
-            "episodic_diff_now": current["episodic_diff_lines"],
+            "episodic_diff_now": latest_soul.get("diff_lines", current["episodic_diff_lines"]),
             "knowledge_regression_start": first["knowledge_regression"],
             "knowledge_regression_now": current["knowledge_regression"],
             "episodes_tried": sum(row["episodes_tried"] for row in experiments),
             "rollouts": sum(row["rollouts"] for row in experiments),
             "stored_samples": sum(row["stored_samples"] for row in experiments),
         },
+        "loops": {
+            "sources": [
+                {"name": name, "experiments": count}
+                for name, count in source_counts.most_common()
+            ],
+            "latest_experiment_id": current.get("version"),
+            "latest_experiment_at": current.get("ts"),
+            "latest_source": current.get("source_box") or current.get("source"),
+            "latest_soul": latest_soul,
+            "git_hash": git_hash,
+        },
+        "promotion": {
+            "pareto": "Decision quality +0.005; no safety regression; latency <= 1.3x champion.",
+            "nightly": "Paired v2 needs +0.01, 80% coverage, latency <=1.3x, and non-increasing injection risk.",
+            "discord": "A promotion runs the injection scan, hash-merges SOUL, then opens a titled #eval forum thread.",
+        },
         "experiments": experiments,
         "seed_justification": {"supabase_note": f"Live measured history from {source}"},
     }
 
 
-def autoresearch_experiments():
+def autoresearch_experiments(include_samples=False):
     """Serve only timestamped evaluation history persisted in Supabase."""
-    try:
-        episodes = episodic_evidence()
-    except Exception:
-        episodes = []
-    registry = harness_experiments()
-    samples = evaluation_samples()
+    with database() as connection:
+        try:
+            episodes = episodic_evidence(connection=connection)
+        except Exception:
+            connection.rollback()
+            episodes = []
+        registry = harness_experiments(connection=connection)
+        samples = evaluation_samples(connection=connection) if include_samples else []
+        try:
+            soul = soul_history(connection=connection)
+        except Exception:
+            connection.rollback()
+            soul = []
     return _experiment_payload(
         [],
         "live Supabase evaluations",
         episodes,
         registry,
         samples,
+        soul,
+    )
+
+
+def cached_autoresearch_experiments(include_samples=False):
+    detail = "full" if include_samples else "summary"
+    return cached(
+        f"autoresearch-experiments:{detail}",
+        45,
+        lambda: autoresearch_experiments(include_samples=include_samples),
     )
 
 
@@ -664,12 +781,16 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT / "frontend"), **kwargs)
 
-    def send_json(self, payload, status=200):
+    def send_json(self, payload, status=200, cache_seconds=0):
         body = json.dumps(payload, ensure_ascii=False).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        cache_control = (
+            f"public, max-age=0, s-maxage={cache_seconds}, stale-while-revalidate=300"
+            if cache_seconds and status == 200 else "no-store"
+        )
+        self.send_header("Cache-Control", cache_control)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(body)
@@ -706,7 +827,8 @@ class Handler(SimpleHTTPRequestHandler):
 
         if parsed.path == "/api/autoresearch-experiments":
             try:
-                self.send_json(autoresearch_experiments())
+                full = query.get("detail", ["summary"])[0] == "full"
+                self.send_json(cached_autoresearch_experiments(full), cache_seconds=45)
             except Exception as error:
                 self.send_json({"error": str(error), "experiments": []}, 503)
             return
