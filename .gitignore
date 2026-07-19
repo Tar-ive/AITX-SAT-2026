@@ -14,3 +14,17 @@ output/playwright/
 outputs/
 scripts/nemotron_config.json
 .vercel
+# Autoresearch run workspaces (git repos + ephemeral state)
+research/runs/
+research/registry.json
+!research/champion-lessons.md
+!research/.gitkeep
+
+# Karpathy-pattern local artifacts (seeded results.tsv is committed for the demo)
+run.log
+runs/
+.venv/
+worktrees/
+queue/
+dev/
+CLAUDE.md
