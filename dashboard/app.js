@@ -5,8 +5,9 @@ const catalog={
   macbook:{label:"MacBook",target:699,icon:"fa-laptop"},
   ram:{label:"DDR5 RAM",target:199,icon:"fa-memory"}
 };
-const state={category:"gpu",market:null,deals:[],dealFilter:"all",improvement:[],operations:null,limit:3};
+const state={category:"gpu",market:null,deals:[],dealFilter:"all",improvement:[],operations:null,experiments:null,limit:3};
 let marketChart,improvementChart,toastTimer;
+const karpathyCharts={};
 
 const money=(n,currency="USD")=>new Intl.NumberFormat("en-US",{style:"currency",currency,maximumFractionDigits:n<1000?2:0}).format(n);
 const esc=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
@@ -34,7 +35,10 @@ function showPage(id){
   window.scrollTo({top:0,behavior:"smooth"});
   history.replaceState(null,"",`#${id}`);
   if(id==="dashboard")setTimeout(()=>marketChart?.resize(),0);
-  if(id==="leaderboard")setTimeout(()=>improvementChart?.resize(),0);
+  if(id==="leaderboard")setTimeout(()=>{
+    improvementChart?.resize();
+    Object.values(karpathyCharts).forEach(c=>c?.resize());
+  },0);
 }
 
 function renderListingRows(rows){
@@ -195,6 +199,181 @@ function renderImprovementChart(runs,candidates=[]){
   }}});
 }
 
+/** Karpathy-style keep/discard staircase for one metric. */
+function renderKarpathyChart(canvasId, experiments, metric, opts={}){
+  const canvas=$(`#${canvasId}`);
+  if(!canvas||!window.Chart)return;
+  let best=null;
+  const running=[], discarded=[], keptPts=[];
+  experiments.forEach((e,i)=>{
+    if(e.kept||e.accepted){
+      best=e[metric];
+      keptPts.push(e[metric]);
+      discarded.push(null);
+    }else{
+      keptPts.push(null);
+      discarded.push(e[metric]);
+    }
+    running.push(best);
+  });
+  const labels=experiments.map(e=>e.experiment);
+  karpathyCharts[canvasId]?.destroy();
+  const showLabels=!!opts.annotate;
+  karpathyCharts[canvasId]=new Chart(canvas,{
+    type:"line",
+    data:{
+      labels,
+      datasets:[
+        {
+          label:"Discarded",
+          data:discarded,
+          showLine:false,
+          pointRadius:3,
+          pointHoverRadius:5,
+          pointBackgroundColor:"#c8c4ba",
+          pointBorderWidth:0,
+          order:1
+        },
+        {
+          label:"Kept",
+          data:keptPts,
+          showLine:false,
+          pointRadius:5.5,
+          pointHoverRadius:7,
+          pointBackgroundColor:"#fffdf7",
+          pointBorderColor:"#28754c",
+          pointBorderWidth:2,
+          order:3
+        },
+        {
+          label:"Running best",
+          data:running,
+          stepped:"after",
+          borderColor:"#28754c",
+          borderWidth:2.4,
+          pointRadius:0,
+          spanGaps:true,
+          order:2
+        }
+      ]
+    },
+    options:{
+      animation:false,
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:"index",intersect:false},
+      plugins:{
+        legend:{position:"bottom",labels:{boxWidth:12,font:{family:"DM Sans",size:11}}},
+        tooltip:{
+          backgroundColor:"#171711",
+          titleFont:{family:"DM Mono"},
+          bodyFont:{family:"DM Sans"},
+          filter:item=>item.raw!=null,
+          callbacks:{
+            title:items=>{
+              const exp=experiments[items[0]?.dataIndex ?? 0];
+              return exp?`#${exp.experiment} · ${exp.ts?.slice(5,16)||exp.version}`:"";
+            },
+            afterBody:items=>{
+              const exp=experiments[items[0]?.dataIndex ?? 0];
+              return exp?.description?[`${exp.kept||exp.accepted?"KEPT":"discarded"}: ${exp.description}`]:[];
+            }
+          }
+        }
+      },
+      scales:{
+        x:{
+          title:{display:true,text:"Experiment #",font:{family:"DM Mono",size:10}},
+          grid:{display:false},
+          ticks:{font:{family:"DM Mono",size:9},color:"#77736a",maxTicks:10}
+        },
+        y:{
+          title:{display:true,text:opts.yLabel||metric,font:{family:"DM Mono",size:10}},
+          grid:{color:"#ded8cc"},
+          ticks:{font:{family:"DM Mono",size:9},color:"#77736a"}
+        }
+      }
+    },
+    plugins: showLabels?[{
+      id:"keptLabels",
+      afterDatasetsDraw(chart){
+        const meta=chart.getDatasetMeta(1);
+        const ctx=chart.ctx;
+        ctx.save();
+        ctx.font="9px DM Mono, monospace";
+        ctx.fillStyle="#3d3a32";
+        experiments.forEach((e,i)=>{
+          if(!(e.kept||e.accepted))return;
+          const pt=meta.data[i];
+          if(!pt||pt.skip)return;
+          ctx.save();
+          ctx.translate(pt.x+4, pt.y-4);
+          ctx.rotate(-Math.PI/7);
+          ctx.fillText((e.description||"").slice(0,34),0,0);
+          ctx.restore();
+        });
+        ctx.restore();
+      }
+    }]:[]
+  });
+}
+
+function fmtDelta(start, now, digits=3, invert=false){
+  const d=now-start;
+  const good=invert?d<0:d>0;
+  const arrow=d>0?"▲":d<0?"▼":"–";
+  return `${arrow} ${Math.abs(d).toFixed(digits)}`;
+}
+
+function renderExperiments(payload){
+  state.experiments=payload;
+  const exps=payload.experiments||[];
+  const s=payload.summary||{};
+  $("#improvement-evidence").textContent=`${s.experiments||exps.length} experiments · ${s.kept||0} kept · seed ${payload.seed}`;
+  $("#seed-value").textContent=String(payload.seed??"—");
+  $("#seed-exp-count").textContent=String(s.experiments??exps.length);
+  $("#seed-kept-count").textContent=String(s.kept??0);
+  const note=payload.seed_justification?.supabase_note||"";
+  $("#seed-note").textContent=note||"Seed derived from measured Verifiers / Prime-RL / live radar anchors.";
+  const methodSeed=$("#method-seed");
+  if(methodSeed)methodSeed.textContent=String(payload.seed??"—");
+
+  $("#acc-delta").textContent=`${(s.accuracy_start??0).toFixed(3)} → ${(s.accuracy_now??0).toFixed(3)}`;
+  $("#ret-delta").textContent=`${(s.retrieval_start??0).toFixed(1)}s → ${(s.retrieval_now??0).toFixed(1)}s`;
+  $("#price-delta").textContent=`${(s.price_regression_start??0).toFixed(1)} → ${(s.price_regression_now??0).toFixed(1)}`;
+  $("#agent-delta").textContent=`${(s.agent_regression_start??0).toFixed(3)} → ${(s.agent_regression_now??0).toFixed(3)}`;
+
+  renderKarpathyChart("chart-accuracy", exps, "accuracy", {yLabel:"Accuracy (↑ better)"});
+  renderKarpathyChart("chart-retrieval", exps, "retrieval_s", {yLabel:"Seconds (↓ better)", lowerIsBetter:false});
+  renderKarpathyChart("chart-price", exps, "price_regression", {yLabel:"Price regression (↓ better)"});
+  renderKarpathyChart("chart-agent", exps, "agent_regression", {yLabel:"Agent regression (↓ better)"});
+  renderKarpathyChart("chart-overview", exps, "accuracy", {yLabel:"Accuracy", annotate:true});
+
+  const kept=exps.filter(e=>e.kept||e.accepted);
+  $("#kept-log").innerHTML=kept.map(e=>`
+    <li><b>#${e.experiment}</b> <span>${esc(e.ts?.slice(0,16)||"")}</span>
+    <strong>${e.accuracy.toFixed(4)}</strong> · ${e.retrieval_s.toFixed(2)}s
+    <em>${esc(e.description)}</em></li>`).join("");
+}
+
+async function loadExperiments(){
+  // Prefer API; fall back to static JSON committed in the repo.
+  try{
+    renderExperiments(await api("/api/autoresearch-experiments"));
+    return;
+  }catch(_){}
+  try{
+    const paths=[`data/autoresearch_experiments.json?t=${Date.now()}`,`../data/autoresearch_experiments.json?t=${Date.now()}`];
+    let res=null;
+    for(const path of paths){res=await fetch(path);if(res.ok)break;}
+    if(!res||!res.ok)throw new Error("static seed missing");
+    renderExperiments(await res.json());
+  }catch(error){
+    $("#improvement-evidence").textContent="Experiment history unavailable";
+    $("#seed-note").textContent=error.message;
+  }
+}
+
 async function loadImprovement(){
   try{renderImprovement(await api("/api/improvement"))}
   catch(error){
@@ -339,7 +518,7 @@ $("#watch-form").addEventListener("submit",event=>{event.preventDefault();render
 $$(".segmented button").forEach(el=>el.addEventListener("click",()=>{$$(".segmented button").forEach(button=>button.classList.toggle("active",button===el));state.limit=+el.dataset.range;renderMarketChart(state.market?.listings||[])}));
 $$(".filter-chip").forEach(el=>el.addEventListener("click",()=>{$$(".filter-chip").forEach(button=>button.classList.toggle("active",button===el));renderDeals(el.dataset.filter)}));
 $("#benchmark-select").addEventListener("change",event=>$("#benchmark-label").textContent=event.target.value);
-$("#run-evaluation").addEventListener("click",async event=>{event.currentTarget.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Refreshing';await Promise.all([loadImprovement(),loadOperations()]);event.currentTarget.innerHTML='<i class="fa-solid fa-check"></i> History refreshed';showToast("Evidence refreshed. Promotion remains a human decision.")});
+$("#run-evaluation").addEventListener("click",async event=>{event.currentTarget.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Refreshing';await Promise.all([loadImprovement(),loadOperations(),loadExperiments()]);event.currentTarget.innerHTML='<i class="fa-solid fa-check"></i> History refreshed';showToast("Evidence refreshed. Promotion remains a human decision.")});
 $(".toggle").addEventListener("click",event=>event.currentTarget.classList.toggle("active"));
 const enterFullscreen=async element=>{
   const video=$("video",element);
@@ -391,5 +570,5 @@ zoom.addEventListener("close",()=>{const video=$("video",zoomStage);video?.pause
 window.addEventListener("hashchange",()=>showPage(location.hash.slice(1)||"dashboard"));
 
 initRsiLoop();
-Promise.allSettled([loadMarket(),loadDeals(),loadImprovement(),loadOperations(),loadRsiIdeas()]);
+Promise.allSettled([loadMarket(),loadDeals(),loadImprovement(),loadOperations(),loadRsiIdeas(),loadExperiments()]);
 showPage(location.hash.slice(1)||"dashboard");

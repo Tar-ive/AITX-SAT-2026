@@ -15,11 +15,13 @@ from dashboard_api import (  # noqa: E402
     CATEGORIES,
     IMPROVEMENT_RUNS,
     RSI_RUNS_CSV,
+    autoresearch_experiments,
     build_story,
     database,
     marketplace,
     rsi_idea_memory,
     rsi_operations,
+    try_supabase_rsi_runs,
 )
 
 
@@ -57,6 +59,17 @@ class handler(BaseHTTPRequestHandler):
                 self.json(marketplace(category))
             except Exception as error:
                 self.json({"data_status": "unavailable", "error": str(error), "listings": []}, 503)
+            return
+
+        if route == "/autoresearch-experiments":
+            try:
+                self.json(autoresearch_experiments())
+            except Exception as error:
+                self.json({"error": str(error), "experiments": []}, 503)
+            return
+
+        if route == "/supabase-rsi-runs":
+            self.json(try_supabase_rsi_runs())
             return
 
         if route == "/improvement":

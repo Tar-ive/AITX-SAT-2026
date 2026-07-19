@@ -1,0 +1,19 @@
+[project]
+name = "autoresearch"
+version = "0.1.0"
+description = "Autonomous GPU-deal policy research swarm (Karpathy-pattern, AITX SAT 2026)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31",
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+    "psycopg2-binary>=2.9",
+]
+
+[project.scripts]
+autoresearch-prep = "prepare:main"
+autoresearch-train = "train:main"
+
+[tool.uv]
+package = false
