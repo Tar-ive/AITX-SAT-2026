@@ -345,6 +345,33 @@
           </div>
         </div>
       </article>
+      <div class="verifier-section" id="evaluation-grid">
+        <div class="section-title">
+          <p class="eyebrow">Evaluation grid</p>
+          <h2>How every snapshot is scored</h2>
+          <p>The recursive-intelligence benchmark compresses each run into a 0–100 value score, measured at Day 0 (base) and Day 2 (post-learning) on the same frozen 15-question golden set.</p>
+        </div>
+        <p class="definition"><strong>Value = 0.5 × Accuracy + 0.2 × Speed + 0.3 × Platform intelligence</strong> — scored by Verifiers + an LLM judge against the frozen golden dataset. Accumulated lessons are the only thing allowed to change between snapshots.</p>
+        <div class="score-grid">
+          <div><span>w₁ = 0.5</span><i class="fa-solid fa-bullseye"></i><h3>Accuracy</h3><p>Agent's reported price vs the true landed price, including shipping and hidden checkout fees.</p><p>≤1% error → 100 pts · ≤10% → 50 pts · &gt;10% → 0 pts</p></div>
+          <div><span>w₂ = 0.2</span><i class="fa-solid fa-stopwatch"></i><h3>Speed</h3><p>How long the agent takes to detect a live price change on monitored listings.</p><p>≤5 min → 100 pts · ≤1 h → 50 pts · missed → 0 pts</p></div>
+          <div><span>w₃ = 0.3</span><i class="fa-solid fa-store"></i><h3>Platform intelligence</h3><p>Does the pick match the buyer's implicit intent — new/warranty vs used/graded vs bulk sourcing?</p><p>Ideal platform → 100 pts · sub-optimal → 50 pts · nonsensical → 0 pts</p></div>
+        </div>
+      </div>
+      <div class="dataset-section">
+        <div class="section-title">
+          <p class="eyebrow">Golden dataset</p>
+          <h2>15 frozen sourcing questions</h2>
+          <p>The exact same questions at Day 0 and Day 2 — only the accumulated lessons differ, so any delta is learning, not luck.</p>
+        </div>
+        <div class="split-stack">
+          <p><b>A · New &amp; warranty-critical (3)</b><span>Sealed RTX 5080, AppleCare-eligible M4 MacBook, B&amp;H Payboo tax workaround — fails if routed to grey-market resellers.</span></p>
+          <p><b>B · Secondhand &amp; grading (4)</b><span>Open-box with remaining warranty, certified refurb fleets, for-parts GPUs, verified peer-to-peer — fails on unverified auctions and stock-image liquidators.</span></p>
+          <p><b>C · Bulk sourcing &amp; lead time (3)</b><span>20-kit rush builds, 100-unit factory-direct orders, escrow-protected imports — fails when lead time or buyer protection is ignored.</span></p>
+          <p><b>D · Niche, legacy &amp; scams (5)</b><span>Legacy motherboards, regional liquidation arbitrage, counterfeit-flagging, price-match policy checks, SMD component sourcing — fails on blind retail defaults.</span></p>
+        </div>
+        <p class="panel-note"><i class="fa-solid fa-book"></i> Full rubric and all 15 test cases: docs/recursive_intelligence_evaluation.md — Day 0 → Day 2 deltas surface on the Leaderboard and in Discord via /benchmark.</p>
+      </div>
     </section>
 
     <section class="page simple-page" id="settings-page">
