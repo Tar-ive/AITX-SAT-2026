@@ -51,7 +51,7 @@ The agent commits on **keep**, `git reset --hard HEAD~1` on **discard**. See `pr
 frontend/         — Vercel Decision Frontier UI (static dashboard + demos + media)
 backend/          — api/ (Vercel serverless), scripts/ (dashboard + marketplace APIs),
                     supabase/ (migrations), supabase-readonly-proxy/, infra/ (terraform EC2 hosts)
-nemotron/         — deploy/ (nemoclaw docker-compose), config/ + identity/ (agent team),
+nemoclaw/         — deploy/ (nemoclaw docker-compose), config/ + identity/ (agent team),
                     scripts/ (Railway coordinator, Discord bots, sandbox wiring),
                     skills/ (hermes-tavily-search, sage-cron-publisher, supabase-readonly)
 autoresearch/     — the Karpathy loop + RSI machinery (below)
@@ -74,7 +74,7 @@ Supporting AITX platform (hosts, dashboards, Discord) is the compute/data plane 
 
 ```
 autoresearch/scripts/auto_research_loop.py   — continuous host wrapper (EC2)
-nemotron/scripts/nemotron_coordinator.py     — Railway coordinator API
+nemoclaw/scripts/nemotron_coordinator.py     — Railway coordinator API
 frontend/ + backend/api/                     — Vercel Decision Frontier UI
 autoresearch/skill/                          — Hermes #4823 helpers (state/plan/git workspace)
 autoresearch/environments/gpu_deal_judge*/   — Prime / Verifiers tasksets

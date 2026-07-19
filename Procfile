@@ -1,1 +1,1 @@
-web: python3 nemotron/scripts/nemotron_coordinator.py
+web: python3 nemoclaw/scripts/nemotron_coordinator.py

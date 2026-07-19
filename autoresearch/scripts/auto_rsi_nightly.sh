@@ -12,7 +12,7 @@ echo "=== RSI cycle $(date -u +%FT%TZ) ==="
 
 REPO=/opt/aitx/repo
 cd "$REPO"
-set -a; . nemotron/deploy/docker-compose/.env; set +a
+set -a; . nemoclaw/deploy/docker-compose/.env; set +a
 export OPENAI_API_KEY="${NVIDIA_INFERENCE_API_KEY:?}"
 export GOLDEN_DATASET="$REPO/autoresearch/scripts/golden_dataset.json"
 export PATH="/root/.local/bin:$PATH"

@@ -8,7 +8,7 @@ import requests
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
-# Path Configuration (file lives at nemotron/scripts/, repo root is two up)
+# Path Configuration (file lives at nemoclaw/scripts/, repo root is two up)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_ROOT = os.path.dirname(BASE_DIR)
 CONFIG_PATH = os.path.join(BASE_DIR, "scripts", "nemotron_config.json")

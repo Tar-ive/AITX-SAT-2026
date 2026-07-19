@@ -4,7 +4,7 @@ watchPatterns = [
   "railway.toml",
   "Procfile",
   "requirements.txt",
-  "nemotron/scripts/**",
+  "nemoclaw/scripts/**",
   "backend/scripts/**",
   "autoresearch/data/**",
   "frontend/**",
@@ -12,5 +12,5 @@ watchPatterns = [
 ]
 
 [deploy]
-startCommand = "python3 nemotron/scripts/nemotron_coordinator.py"
+startCommand = "python3 nemoclaw/scripts/nemotron_coordinator.py"
 restartPolicyType = "on_failure"
