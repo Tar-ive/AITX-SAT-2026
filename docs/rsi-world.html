@@ -79,7 +79,7 @@ header .sub { color:var(--muted); font-size:.85rem; }
 #world { position:relative; padding:1.4rem; overflow-x:auto; }
 #map { position:relative; min-width:820px; }
 svg#wires { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-.districts { position:relative; display:grid; grid-template-columns:repeat(4,1fr); gap:1.1rem; }
+.districts { position:relative; display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1.1rem; }
 .district { border:1px solid var(--line); border-radius:8px; background:var(--panel); padding: .9rem .8rem 1rem; }
 .district > .eyebrow { display:block; margin-bottom:.15rem; }
 .district > .dname { font-weight:650; margin:0 0 .2rem; font-size:1.02rem; }
@@ -193,6 +193,19 @@ aside .eyebrow { color:var(--cyan); }
       </div>
     </div>
 
+    <div class="district" id="D5">
+      <span class="eyebrow">District 05</span>
+      <p class="dname">The Self-Improving Harness</p>
+      <p class="dsub">The frontier: the system rewrites its own machinery.</p>
+      <div class="nodes">
+        <button class="node" data-k="selfharness"><span class="t"><span class="dot amber"></span>Self-Harness &amp; DGM</span><span class="d">the harness improves itself</span></button>
+        <button class="node" data-k="fivemetrics"><span class="t"><span class="dot"></span>the five metrics</span><span class="d">what every experiment is judged on</span></button>
+        <button class="node" data-k="actionspace"><span class="t"><span class="dot amber"></span>the action space</span><span class="d">what the orchestrator may try</span></button>
+        <button class="node" data-k="secondbrain"><span class="t"><span class="dot good"></span>the second brain</span><span class="d">Cursor loop on its own box</span></button>
+        <button class="node" data-k="evalchannel"><span class="t"><span class="dot good"></span>#eval digest</span><span class="d">where humans monitor</span></button>
+      </div>
+    </div>
+
   </div>
 </div></div>
 
@@ -273,7 +286,37 @@ training:["SFT · DPO · GRPO","When notes-to-self become permanent skill.",
 };
 
 const chipsEl = document.getElementById('chips');
-const order = ["channels","bots","reactions","sandbox","agents","internal","crons","episodes","lessons","verbalrl","golden","verifiers","trend","gate","shakedown","training"];
+selfharness:["Self-Harness & the Darwin Gödel Machine","The system stops improving only its policy — and starts improving its own machinery.",
+`<p>So far the loop tunes the <em>policy</em> (the lessons). The frontier is tuning the <em>harness</em> itself — the tools, the rubric, the prompts, the memory system. Two 2026 papers show it works:</p>
+<p><b>Self-Harness</b> (Shanghai AI Lab): an agent mines its own failures, proposes a harness change, and keeps it only if a regression test passes — held-out pass rates rose 40%→62%.</p>
+<p><b>Darwin Gödel Machine</b> (Sakana AI): a system that rewrites its own code and validates each change against a benchmark (SWE-bench 20%→50%). Its key move: require <em>empirical evidence</em>, not a mathematical proof, that a change helps — which is exactly your frozen-benchmark gate.</p>
+<p class="you"><b>In your system:</b> this is what District 05 builds toward. We have the substrate (the loop, the gate, the git-branch experiments); the new part is letting the orchestrator edit harness <em>components</em>, not just lessons.</p>`],
+fivemetrics:["The five metrics","Every experiment is judged on all five — improving one by wrecking another doesn't count.",
+`<p>A change is only promoted if it's a genuine, regression-free win across the board:</p>
+<p>1. <b>Decision quality</b> — is the answer right? (must go up)<br>
+2. <b>Seconds per answer</b> — how fast? (must stay low)<br>
+3. <b>Forbidden-platform risk</b> — did it recommend a scam/warranty-voiding source? (must stay near zero)<br>
+4. <b>Episodic-memory diff lines</b> — how much did the agent actually <em>learn</em>? (the newest axis)<br>
+5. <b>Knowledge regression</b> — did it get worse at things it used to know? (must be ≥0)</p>
+<p class="you"><b>In your system:</b> these are the five spokes on the radar chart. A candidate that raises accuracy but spikes forbidden-platform risk is rejected — no single metric can be bought at another's expense.</p>`],
+actionspace:["The action space","The menu of moves the orchestrator is allowed to try.",
+`<p>A self-improving system needs a defined set of <em>actions</em> — and guardrails on each. Yours (from safest to riskiest):</p>
+<p>• <code>update_episodic_memory</code> — rewrite the lessons (safe, already live)<br>
+• <code>search_verifiers_hub</code> — pull a similar exam from Prime Intellect's 2,500-environment hub<br>
+• <code>swap_harness_component</code> — replace a rubric/tool with a GitHub-recommended one<br>
+• <code>distill_to_smaller_model</code> — teach a nano agent from the big one<br>
+• <code>adjust_openshell_policy</code> — change what an agent may reach (human-gated)</p>
+<p><b>The gate on every action</b>: allowed only if (a) a past experiment in Supabase didn't mark it regressive, (b) the OpenShell policy permits the egress it needs, and (c) it passes the regression test first. That's the Self-Harness no-regression guarantee, backed by your <code>harness_experiments</code> table.</p>
+<p class="you"><b>In your system:</b> the registry is live; the riskier actions (component-swap, policy change) are scaffolded but held behind human approval — exactly where the research puts the guardrails.</p>`],
+secondbrain:["The second brain","A separate small box runs the bolder experiments — so the proven one never breaks.",
+`<p>There are now <em>two</em> autoresearch loops. The main box runs the stable, proven loop that feeds the live leaderboard. A separate <b>t3.small box</b> runs the Cursor agent's fuller Karpathy loop — the one that spins up a git branch per experiment, runs 25 at a time, and keeps or discards each.</p>
+<p>Why two? Isolation. The bold, experimental version can crash, loop, or make a bad change without ever touching the box that's running the demo. It's the same principle as the sandbox, one level up: risky research runs where it can't hurt the working system.</p>
+<p class="you"><b>In your system:</b> the second brain is a systemd service that auto-restarts and self-stops July 20. It's running experiments right now — "Tighten warranty/seller-filter rules from recent fails."</p>`],
+evalchannel:["#eval — the human monitoring post","One clean channel where a person can see, at a glance, what the machine decided overnight.",
+`<p>The nightly machine runs unattended — but humans still need a window in. #eval is a Discord <em>forum</em> where every evaluation posts a titled thread: the five metrics, before→after, which action won, and whether it was promoted or rolled back. Separate from the noisy #daily so it stays scannable.</p>
+<p>This is the human's real job in the loop: not to gate every decision (that would throttle RSI to human speed), but to <em>monitor</em> the digests, spot anything off, and give the weekly steer.</p>
+<p class="you"><b>In your system:</b> the first digest is already posted — a thread showing decision quality 0.593, 5.45s/answer, 0 forbidden-platform risk, 8 memory-diff lines, no regression, 🏆 promoted.</p>`],
+const order = ["channels","bots","reactions","sandbox","agents","internal","crons","episodes","lessons","verbalrl","golden","verifiers","trend","gate","shakedown","training","selfharness","fivemetrics","actionspace","secondbrain","evalchannel"];
 for (const k of order){
   const b=document.createElement('button'); b.className='chip'; b.textContent=D[k][0].split('—')[0].trim();
   b.onclick=()=>show(k); chipsEl.appendChild(b);
@@ -368,7 +411,19 @@ const QUIZ=[
   why:"Midnight = memory shift (episodes.jsonl + MEMORY.md). The 8:00 AM shift is the price digest. The box shutdown is July 20 only."},
  {k:"trend", q:"How does a new version become the accepted champion on the trend line?",
   o:["A human reviews it and clicks accept","A statistical gate promotes it automatically when it beats the champion beyond the confidence interval","The agent promotes itself when it feels confident","Every nightly run is promoted"], a:1,
-  why:"No human in the loop: promote on a defensible gain (≥0.01 with CI clearance), auto-rollback on a >0.02 regression, hold otherwise. Humans audit the log; they never gate the cycle."}
+  why:"No human in the loop: promote on a defensible gain (≥0.01 with CI clearance), auto-rollback on a >0.02 regression, hold otherwise. Humans audit the log; they never gate the cycle."},
+ {k:"selfharness", q:"What's the difference between improving the POLICY and improving the HARNESS?",
+  o:["Nothing — they're the same thing","Policy = the lessons the agent loads; harness = the machinery itself (tools, rubric, memory system)","Policy is for humans, harness is for agents","Harness improvement needs a bigger GPU"], a:1,
+  why:"So far the loop tunes the lessons (policy). Self-Harness and the Darwin Gödel Machine go further — the system edits its own tools, rubric, and memory system, validated the same empirical way."},
+ {k:"fivemetrics", q:"A candidate raises decision quality but spikes forbidden-platform risk. What happens?",
+  o:["It's promoted — accuracy is what matters most","It's rejected — a win on one metric can't be bought by wrecking another","It's promoted but flagged","A human decides"], a:1,
+  why:"All five metrics gate together. Improving accuracy while making the agent recommend scam listings is not a real improvement, so the Pareto gate rejects it."},
+ {k:"actionspace", q:"Before the orchestrator is allowed to try a harness action, what three things must hold?",
+  o:["It must be Tuesday, small, and cheap","A past experiment didn't mark it regressive, the OpenShell policy permits its egress, and it passes the regression test","The human approves, the model agrees, and the cron fires","Nothing — it can try anything"], a:1,
+  why:"That triple gate (Supabase history + OpenShell policy + regression test) is the Self-Harness no-regression guarantee. Riskier actions like policy changes stay behind human approval."},
+ {k:"secondbrain", q:"Why does the bolder Cursor autoresearch loop run on a SEPARATE small box?",
+  o:["The main box ran out of disk","Isolation — a risky experimental loop can crash or misbehave without ever touching the box running the demo","It's cheaper","Cursor requires its own server"], a:1,
+  why:"Same principle as the sandbox, one level up: risky research runs where it can't hurt the working system. The proven loop keeps feeding the live leaderboard untouched."}
 ];
 document.getElementById('quizBtn').onclick=()=>{
   tb.classList.remove('on');
