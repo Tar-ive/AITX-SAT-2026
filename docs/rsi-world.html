@@ -203,6 +203,7 @@ aside .eyebrow { color:var(--cyan); }
         <button class="node" data-k="actionspace"><span class="t"><span class="dot amber"></span>the action space</span><span class="d">what the orchestrator may try</span></button>
         <button class="node" data-k="secondbrain"><span class="t"><span class="dot good"></span>the second brain</span><span class="d">Cursor loop on its own box</span></button>
         <button class="node" data-k="evalchannel"><span class="t"><span class="dot good"></span>#eval digest</span><span class="d">where humans monitor</span></button>
+        <button class="node" data-k="soul"><span class="t"><span class="dot amber"></span>Hermes SOUL ↔ RSI</span><span class="d">preference-learning meets the loop</span></button>
       </div>
     </div>
 
@@ -316,7 +317,13 @@ evalchannel:["#eval — the human monitoring post","One clean channel where a pe
 `<p>The nightly machine runs unattended — but humans still need a window in. #eval is a Discord <em>forum</em> where every evaluation posts a titled thread: the five metrics, before→after, which action won, and whether it was promoted or rolled back. Separate from the noisy #daily so it stays scannable.</p>
 <p>This is the human's real job in the loop: not to gate every decision (that would throttle RSI to human speed), but to <em>monitor</em> the digests, spot anything off, and give the weekly steer.</p>
 <p class="you"><b>In your system:</b> the first digest is already posted — a thread showing decision quality 0.593, 5.45s/answer, 0 forbidden-platform risk, 8 memory-diff lines, no regression, 🏆 promoted.</p>`],
-const order = ["channels","bots","reactions","sandbox","agents","internal","crons","episodes","lessons","verbalrl","golden","verifiers","trend","gate","shakedown","training","selfharness","fivemetrics","actionspace","secondbrain","evalchannel"];
+soul:["Hermes SOUL ↔ the RSI loop","Two learning systems, now one flywheel: Hermes learns who you are; the RSI loop makes the whole team better at it.",
+`<p>There are actually two things learning here, and they were separate until now:</p>
+<p><b>Hermes</b> (a second agent runtime alongside OpenClaw) learns your <em>preferences</em> — factory-sealed only, avoid eBay over $500, digests at 8am — and writes them into its <code>SOUL.md</code>, its own evolving identity file. But SOUL.md was trapped in Hermes's sandbox: not persistent, not shareable, invisible to the RSI loop.</p>
+<p><b>The bridge:</b> SOUL.md now syncs to Supabase (<code>agent_soul</code>, versioned). That makes it (1) persistent across rebuilds, (2) web-readable, (3) shareable — other agents read the same preferences — and crucially (4) <em>measurable</em>: the diff-line count of each SOUL update <em>is</em> the RSI loop's 5th metric (how much the agent learned this cycle). When Hermes learned two new preferences, that registered as "2 diff lines" and posted to the leaderboard.</p>
+<p class="you"><b>In your system:</b> <code>soul_sync.py</code> versions every SOUL change into Supabase and feeds the churn to the coordinator. So Hermes learning your taste and the loop improving the harness are no longer two projects — they're one flywheel: preferences shape what the loop optimizes toward, and the loop's promoted lessons flow back into how every agent behaves.</p>
+<p class="you"><b>Note on Sage:</b> Sage is dual-role — it's both an internal reviewer <em>and</em> a Discord agent handling daily reminders. (The Scout/Inspector name overlap between the OpenClaw bots and Hermes's internal sub-agents is cosmetic — different runtimes, they never collide.)</p>`],
+const order = ["channels","bots","reactions","sandbox","agents","internal","crons","episodes","lessons","verbalrl","golden","verifiers","trend","gate","shakedown","training","selfharness","fivemetrics","actionspace","secondbrain","evalchannel","soul"];
 for (const k of order){
   const b=document.createElement('button'); b.className='chip'; b.textContent=D[k][0].split('—')[0].trim();
   b.onclick=()=>show(k); chipsEl.appendChild(b);
@@ -423,7 +430,10 @@ const QUIZ=[
   why:"That triple gate (Supabase history + OpenShell policy + regression test) is the Self-Harness no-regression guarantee. Riskier actions like policy changes stay behind human approval."},
  {k:"secondbrain", q:"Why does the bolder Cursor autoresearch loop run on a SEPARATE small box?",
   o:["The main box ran out of disk","Isolation — a risky experimental loop can crash or misbehave without ever touching the box running the demo","It's cheaper","Cursor requires its own server"], a:1,
-  why:"Same principle as the sandbox, one level up: risky research runs where it can't hurt the working system. The proven loop keeps feeding the live leaderboard untouched."}
+  why:"Same principle as the sandbox, one level up: risky research runs where it can't hurt the working system. The proven loop keeps feeding the live leaderboard untouched."},
+ {k:"soul", q:"Hermes writes learned preferences into SOUL.md. Once it syncs to Supabase, how does that connect to the RSI loop?",
+  o:["It doesn't — they stay separate systems","The diff-line count of each SOUL update becomes the loop's 5th metric (how much the agent learned)","SOUL.md replaces the golden dataset","Supabase trains the model directly"], a:1,
+  why:"The bridge makes SOUL persistent, shareable, AND measurable: each SOUL change's diff-lines feeds the 5th leaderboard metric, so Hermes's preference-learning and the harness-improvement loop become one flywheel."}
 ];
 document.getElementById('quizBtn').onclick=()=>{
   tb.classList.remove('on');
