@@ -153,8 +153,8 @@ Hi have a look at program.md and let's kick off a new experiment! let's do the s
 
 1. **EC2 (always-on)** — Terraform provisions the host (`infra/terraform`). `deploy/docker-compose` runs the agent sandbox. Autoresearch either:
    - runs the Karpathy loop by hand (`train.py` + git keep/discard), or
-   - runs `scripts/auto_research_loop.py` on a timer (`CYCLE_SECS=300`), which mutates lessons, evaluates via the same prepare-style rubric, and **POSTs each cycle** to Railway.
-   Nightly RSI also writes measured rows into Supabase `public.rsi_runs` when `SUPABASE_DB_PW` is set.
+   - runs `scripts/auto_research_loop.py` on a timer (`CYCLE_SECS=300`), which mutates lessons (rotating strategies + temperature), evaluates via the same prepare-style rubric, and **POSTs each cycle** to Railway (with periodic full-history resync so ephemeral coordinator wipes self-heal).
+   The host also serves a reliable live leaderboard at `/leaderboard` + `/radar` via `scripts/search_cache_service.py` (no Railway lag/wipes). Nightly RSI writes measured rows into Supabase `public.rsi_runs` when `SUPABASE_DB_PW` is set.
 
 2. **Railway (coordinator)** — `Procfile` / `railway.toml` start `scripts/nemotron_coordinator.py`. It stores radar snapshots + evaluations in memory/disk on the service and exposes:
    - `GET/POST /api/radar` — experiment history for live charts

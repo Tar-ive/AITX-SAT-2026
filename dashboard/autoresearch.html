@@ -1,8 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Autoresearch Leaderboard — Karpathy staircase</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<title>Autoresearch Leaderboard — before / after</title>
 <style>
 :root { --bg:#10151f; --panel:#161d2b; --line:#2a3448; --ink:#e8e6df; --muted:#79839a;
         --amber:#f0a83c; --cyan:#56b8c8; --good:#6fbf73; }
@@ -12,75 +11,105 @@
 h1 { font-size:1.25rem; margin:.2rem 0 .1rem; } .sub { color:var(--muted); font-size:.83rem; margin-bottom:1rem; }
 .eyebrow { font-family:ui-monospace,Menlo,monospace; font-size:.66rem; letter-spacing:.14em;
   text-transform:uppercase; color:var(--amber); }
-.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; max-width:1200px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:1rem; max-width:1100px; }
 .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:1rem; }
-.card h2 { font-size:.95rem; margin:.1rem 0 .6rem; } .chart-wrap { height:240px; position:relative; }
+.card h2 { font-size:.95rem; margin:.1rem 0 .6rem; } canvas { width:100%; height:auto; }
 .stat { display:flex; justify-content:space-between; font-size:.82rem; padding:.22rem 0;
   border-bottom:1px dashed var(--line); } .stat:last-child{border:none}
 .stat b { font-family:ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums; }
 .up{color:var(--good)} .flat{color:var(--muted)}
 #log { font-family:ui-monospace,Menlo,monospace; font-size:.72rem; color:var(--muted);
   max-height:180px; overflow:auto; white-space:pre-wrap; }
-a { color:var(--cyan); }
 </style>
-<span class="eyebrow">AITX SAT 2026 · autoresearch (karpathy + Hermes #4823)</span>
-<h1>Policy Autoresearch — Jul 17 5pm → now</h1>
-<p class="sub">Green = kept (running best). Grey = discarded. Seed justified by Verifiers / Prime-RL / live radar. Full five-chart view lives on the <a href="index.html#leaderboard">Decision Frontier leaderboard</a>.</p>
+<span class="eyebrow">AITX SAT 2026 · autoresearch (karpathy-pattern)</span>
+<h1>Policy Autoresearch — before vs. now</h1>
+<p class="sub">Four objectives: accuracy ↑ · retrieval speed ↑ (lower seconds) · deal safety ↑ (no forbidden-platform picks) · stability ↑ (no regression). Auto-refreshes every 10 s from <code>/radar</code> (EC2) or <code>data/radar_snapshots.json</code>. Full five-chart view: <a href="index.html#leaderboard">Decision Frontier</a>.</p>
 <div class="grid">
-  <div class="card"><h2>Accuracy ↑</h2><div class="chart-wrap"><canvas id="c-acc"></canvas></div></div>
-  <div class="card"><h2>Retrieval seconds ↓</h2><div class="chart-wrap"><canvas id="c-ret"></canvas></div></div>
-  <div class="card"><h2>Price regression ↓</h2><div class="chart-wrap"><canvas id="c-price"></canvas></div></div>
-  <div class="card"><h2>Agent regression ↓</h2><div class="chart-wrap"><canvas id="c-agent"></canvas></div></div>
-  <div class="card" style="grid-column:1/-1">
+  <div class="card"><h2>Baseline (loop start)</h2><canvas id="before" width="340" height="300"></canvas></div>
+  <div class="card"><h2>Current champion</h2><canvas id="after" width="340" height="300"></canvas></div>
+  <div class="card">
     <h2>Scoreboard</h2>
     <div id="stats">loading…</div>
-    <h2 style="margin-top:1rem">Kept promotions</h2>
+    <h2 style="margin-top:1rem">Accuracy <span style="color:var(--amber)">━</span> over cycles · retrieval time <span style="color:var(--cyan)">▨</span></h2>
+    <canvas id="trend" width="320" height="120"></canvas>
+    <h2 style="margin-top:1rem">Recent cycles</h2>
     <div id="log"></div>
   </div>
 </div>
 <script>
+const AXES=[["Accuracy",e=>e.accuracy],["Speed",e=>Math.max(0,Math.min(1,5/(e.retrieval_s||5)))],
+            ["Deal safety",e=>(e.deal_safety??100)/100],["Stability",e=>Math.max(0,Math.min(1,1+(e.stability??0)*4))]];
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const charts={};
-function stair(id, exps, metric, yLabel){
-  let best=null; const run=[], disc=[], kept=[];
-  exps.forEach(e=>{
-    if(e.kept||e.accepted){best=e[metric]; kept.push(e[metric]); disc.push(null);}
-    else {kept.push(null); disc.push(e[metric]);}
-    run.push(best);
-  });
-  charts[id]?.destroy();
-  charts[id]=new Chart(document.getElementById(id),{type:'line',data:{
-    labels:exps.map(e=>e.experiment),
-    datasets:[
-      {label:'Discarded',data:disc,showLine:false,pointRadius:2.5,pointBackgroundColor:'#888',order:1},
-      {label:'Kept',data:kept,showLine:false,pointRadius:5,pointBackgroundColor:'transparent',pointBorderColor:css('--good'),pointBorderWidth:2,order:3},
-      {label:'Running best',data:run,stepped:'after',borderColor:css('--good'),borderWidth:2.2,pointRadius:0,spanGaps:true,order:2}
-    ]
-  },options:{animation:false,responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-    scales:{x:{ticks:{maxTicks:8,color:css('--muted'),font:{size:9}},grid:{display:false}},
-            y:{title:{display:true,text:yLabel,color:css('--muted'),font:{size:10}},ticks:{color:css('--muted'),font:{size:9}},grid:{color:css('--line')}}}}});
+function radar(cv,entry,color){
+  const c=cv.getContext("2d"),W=cv.width,H=cv.height,cx=W/2,cy=H/2+8,R=Math.min(W,H)/2-46;
+  c.clearRect(0,0,W,H);c.strokeStyle=css("--line");c.fillStyle=css("--muted");c.font="11px system-ui";
+  for(let ring=1;ring<=4;ring++){c.beginPath();for(let i=0;i<=4;i++){const a=-Math.PI/2+i*Math.PI/2,r=R*ring/4;
+    c[i?"lineTo":"moveTo"](cx+r*Math.cos(a),cy+r*Math.sin(a));}c.stroke();}
+  AXES.forEach((ax,i)=>{const a=-Math.PI/2+i*Math.PI/2;
+    c.textAlign=["center","left","center","right"][i];c.fillText(ax[0],cx+(R+12)*Math.cos(a),cy+(R+14)*Math.sin(a));});
+  if(!entry)return;
+  c.beginPath();
+  AXES.forEach((ax,i)=>{const a=-Math.PI/2+i*Math.PI/2,r=R*Math.max(.02,ax[1](entry));
+    c[i?"lineTo":"moveTo"](cx+r*Math.cos(a),cy+r*Math.sin(a));});
+  c.closePath();c.globalAlpha=.25;c.fillStyle=color;c.fill();c.globalAlpha=1;
+  c.strokeStyle=color;c.lineWidth=2;c.stroke();
+  AXES.forEach((ax,i)=>{const a=-Math.PI/2+i*Math.PI/2,r=R*Math.max(.02,ax[1](entry));
+    c.beginPath();c.arc(cx+r*Math.cos(a),cy+r*Math.sin(a),3.5,0,7);c.fillStyle=color;c.fill();});
 }
+function trend(cv,hist){
+  const c=cv.getContext("2d"),W=cv.width,H=cv.height,PL=24,PB=16,PT=8,PR=8;c.clearRect(0,0,W,H);
+  if(!hist.length)return;
+  const acc=hist.map(e=>e.accuracy), lat=hist.map(e=>e.retrieval_s||0);
+  const aMin=Math.min(...acc,0.3),aMax=Math.max(...acc,0.75);
+  const lMax=Math.max(...lat,10);
+  const X=i=>PL+(W-PL-PR)*i/Math.max(1,acc.length-1);
+  const Ya=v=>H-PB-(H-PB-PT)*(v-aMin)/(aMax-aMin||1);
+  const Yl=v=>H-PB-(H-PB-PT)*(v/lMax);
+  // gridlines + y labels (accuracy)
+  c.strokeStyle=css("--line");c.fillStyle=css("--muted");c.font="9px ui-monospace,monospace";c.textAlign="right";
+  [aMin,(aMin+aMax)/2,aMax].forEach(v=>{const y=Ya(v);c.beginPath();c.moveTo(PL,y);c.lineTo(W-PR,y);c.stroke();
+    c.fillText(v.toFixed(2),PL-3,y+3);});
+  // retrieval-time band (the "time display") as a faint area
+  c.beginPath();c.moveTo(X(0),H-PB);
+  lat.forEach((v,i)=>c.lineTo(X(i),Yl(v)));c.lineTo(X(lat.length-1),H-PB);c.closePath();
+  c.globalAlpha=.12;c.fillStyle=css("--cyan");c.fill();c.globalAlpha=1;
+  // accuracy line — the one that "keeps moving and dipping"
+  c.strokeStyle=css("--amber");c.lineWidth=2;c.beginPath();
+  acc.forEach((v,i)=>c[i?"lineTo":"moveTo"](X(i),Ya(v)));c.stroke();
+  // dots: promotions filled, candidates hollow
+  acc.forEach((v,i)=>{c.beginPath();c.arc(X(i),Ya(v),3,0,7);
+    if(hist[i].role==="champion"){c.fillStyle=css("--good");c.fill();}
+    else{c.fillStyle=css("--bg");c.fill();c.strokeStyle=css("--amber");c.lineWidth=1.5;c.stroke();}});
+  // x label
+  c.fillStyle=css("--muted");c.textAlign="center";c.fillText("cycles over time →",W/2,H-3);
+}
+const onRailway=location.hostname.endsWith("railway.app");
 async function refresh(){
-  let payload=null;
-  for(const u of ['/api/autoresearch-experiments','data/autoresearch_experiments.json','../data/autoresearch_experiments.json']){
-    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){payload=await r.json(); break;} }catch(e){}
+  let hist=[];
+  // Served from the EC2 host (reliable, always fresh): use /radar.
+  // On Railway: /api/radar. Local file open: the committed snapshot file.
+  const sources = onRailway
+    ? [location.origin+"/api/radar", "../data/radar_snapshots.json"]
+    : ["/radar", location.origin+"/radar", "../data/radar_snapshots.json"];
+  for(const url of sources){
+    try{ const r=await fetch(url+(url.includes("?")?"":"?t="+Date.now())); if(r.ok){ hist=await r.json(); if(hist.length)break; } }catch(e){}
   }
-  if(!payload?.experiments?.length){document.getElementById('stats').textContent='no experiment history yet';return;}
-  const s=payload.summary||{}, exps=payload.experiments;
-  stair('c-acc',exps,'accuracy','Accuracy');
-  stair('c-ret',exps,'retrieval_s','Seconds');
-  stair('c-price',exps,'price_regression','Price reg.');
-  stair('c-agent',exps,'agent_regression','Agent reg.');
-  const d=(a,b,inv)=>{const x=(a-b)*(inv?-1:1);return `<span class="${x>0?'up':'flat'}">${x>0?'▲':x<0?'▼':'–'} ${Math.abs(x).toFixed(3)}</span>`;};
-  document.getElementById('stats').innerHTML=
-    `<div class="stat"><span>Seed</span><b>${payload.seed}</b></div>
-     <div class="stat"><span>Accuracy</span><b>${s.accuracy_start} → ${s.accuracy_now} ${d(s.accuracy_now,s.accuracy_start)}</b></div>
-     <div class="stat"><span>Retrieval (s)</span><b>${s.retrieval_start} → ${s.retrieval_now} ${d(s.retrieval_now,s.retrieval_start,1)}</b></div>
-     <div class="stat"><span>Price regression</span><b>${s.price_regression_start} → ${s.price_regression_now} ${d(s.price_regression_now,s.price_regression_start,1)}</b></div>
-     <div class="stat"><span>Agent regression</span><b>${s.agent_regression_start} → ${s.agent_regression_now} ${d(s.agent_regression_now,s.agent_regression_start,1)}</b></div>
-     <div class="stat"><span>Kept / total</span><b>${s.kept} / ${s.experiments}</b></div>`;
-  document.getElementById('log').textContent=exps.filter(e=>e.kept).map(e=>
-    `#${String(e.experiment).padStart(2)}  ${e.ts}  acc=${e.accuracy}  ${e.description}`).join('\n');
+  // Robust to any malformed rows in an append-only store: keep only real snapshots.
+  hist=(Array.isArray(hist)?hist:[]).filter(e=>e&&typeof e.accuracy==="number");
+  if(!hist.length){document.getElementById("stats").textContent="no snapshots yet — loop warming up";return;}
+  const before=hist[0], champs=hist.filter(e=>e.role==="champion"), after=champs[champs.length-1]||before;
+  radar(document.getElementById("before"),before,css("--muted"));
+  radar(document.getElementById("after"),after,css("--amber"));
+  trend(document.getElementById("trend"),hist);
+  const d=(a,b,inv)=>{const x=(a-b)*(inv?-1:1);return `<span class="${x>0?'up':'flat'}">${x>0?"▲":x<0?"▼":"–"} ${Math.abs(x).toFixed(3)}</span>`;};
+  document.getElementById("stats").innerHTML=
+    `<div class="stat"><span>Accuracy</span><b>${before.accuracy} → ${after.accuracy} ${d(after.accuracy,before.accuracy)}</b></div>
+     <div class="stat"><span>Retrieval (s)</span><b>${before.retrieval_s} → ${after.retrieval_s} ${d(after.retrieval_s,before.retrieval_s,1)}</b></div>
+     <div class="stat"><span>Deal safety (%)</span><b>${before.deal_safety} → ${after.deal_safety} ${d(after.deal_safety,before.deal_safety)}</b></div>
+     <div class="stat"><span>Cycles run</span><b>${hist.length-1}</b></div>
+     <div class="stat"><span>Promotions</span><b>${champs.length-1}</b></div>`;
+  document.getElementById("log").textContent=hist.slice(-8).reverse().map(e=>
+    `${e.ts}  ${e.version.padEnd(10)} acc=${e.accuracy} lat=${e.retrieval_s}s safety=${e.deal_safety}% ${e.accepted===undefined?"(baseline)":e.accepted?"PROMOTED":"rejected"}`).join("\n");
 }
 refresh(); setInterval(refresh,10000);
 </script>

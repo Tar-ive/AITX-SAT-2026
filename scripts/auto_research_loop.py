@@ -80,7 +80,7 @@ Platforms: Amazon (Direct), Amazon Marketplace Third-Party, eBay, Newegg,
 Best Buy, Micro Center. Be conservative about warranty and delivery claims."""
 
 
-def chat(base, key, model, system, user, timeout=90):
+def chat(base, key, model, system, user, timeout=90, temperature=0):
     t0 = time.time()
     r = requests.post(
         f"{base}/chat/completions",
@@ -88,7 +88,7 @@ def chat(base, key, model, system, user, timeout=90):
         headers={"Authorization": f"Bearer {key}"},
         json={
             "model": model,
-            "temperature": 0,
+            "temperature": temperature,
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
@@ -186,12 +186,25 @@ def evaluate(lessons: str):
     }, fails
 
 
-def mutate(champion_lessons, history, fails, hypothesis=""):
+# Rotating research strategies keep mutations diverse so the trend explores
+# (moves and dips) instead of plateauing on one local optimum.
+STRATEGIES = [
+    "Rewrite the policy from a DIFFERENT ANGLE than the champion — try rules the champion lacks.",
+    "Be AGGRESSIVE on warranty/counterfeit safety even if it risks a few accuracy points.",
+    "Optimize for SPEED: fewer, sharper rules so the judge decides faster.",
+    "Focus on the specific FAILURES below — add precise rules that fix exactly those.",
+    "Simplify radically: keep only the highest-leverage rules, drop the rest.",
+]
+
+
+def mutate(champion_lessons, history, fails, cycle=0, hypothesis=""):
+    strategy = STRATEGIES[cycle % len(STRATEGIES)]
     prompt = f"""You are the researcher in an autoresearch loop optimizing a GPU
 purchase-decision policy. The policy IS the lessons file below (like
 autoresearch's program.md). Objectives: accuracy UP, response length SHORT
 (long lessons slow retrieval), zero forbidden-platform picks, no regression.
 
+THIS CYCLE'S STRATEGY: {strategy}
 HYPOTHESIS FOR THIS EXPERIMENT: {hypothesis or '(general improvement)'}
 
 CURRENT CHAMPION LESSONS:
@@ -206,32 +219,38 @@ Write an improved lessons file: <=20 tight bullet rules, generalized from the
 failures, no test-case IDs or memorized answers, markdown bullets only.
 Reply with ONLY the new lessons file content."""
     sys_msg = "You improve policy instruction files. Output only the file content."
-    text = None
+    # Vary temperature so successive mutations differ and the trend keeps moving.
+    temp = 0.4 + 0.5 * ((cycle % 5) / 4)
+    text_out = None
     if OPENCODE_KEY:
         try:
-            text, _ = chat(
+            text_out, _ = chat(
                 "https://opencode.ai/zen/v1",
                 OPENCODE_KEY,
                 os.environ.get("RESEARCHER_MODEL", "nemotron-3-ultra-free"),
                 sys_msg,
                 prompt,
                 timeout=240,
+                temperature=temp,
             )
         except Exception:
-            text = None
-    if text is None:
+            text_out = None
+    if text_out is None:
         if not NVIDIA_KEY and not OPENROUTER_KEY:
             raise RuntimeError("No researcher API key available")
-        text, _ = chat(
+        text_out, _ = chat(
             "https://integrate.api.nvidia.com/v1",
             NVIDIA_KEY or OPENROUTER_KEY,
             "nvidia/nemotron-3-super-120b-a12b",
             sys_msg,
             prompt,
             timeout=240,
+            temperature=temp,
         )
-    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
-    return text.strip()
+    # strip <think> blocks reasoning models may emit
+    text_out = re.sub(r"<think>.*?</think>", "", text_out, flags=re.DOTALL)
+    return text_out.strip()
+
 
 
 def snapshot(entry):
@@ -398,7 +417,7 @@ def setup_run(goal=None):
     return run_dir, ws, target, rid
 
 
-def policy_cycle(run_dir, workspace_dir, exp, history, champ_metrics, fails):
+def policy_cycle(run_dir, workspace_dir, exp, history, champ_metrics, fails, cycle=0):
     """One branch → mutate → evaluate → merge/revert cycle."""
     exp_id = exp["id"]
     desc = re.sub(r"[^a-zA-Z0-9_-]+", "-", exp.get("hypothesis", "mutate")[:40]).strip("-") or "mutate"
@@ -407,7 +426,11 @@ def policy_cycle(run_dir, workspace_dir, exp, history, champ_metrics, fails):
 
     champion = read_main_file(workspace_dir, TARGET_FILE)
     try:
-        candidate = mutate(champion, history, fails, hypothesis=exp.get("hypothesis", ""))
+        candidate = mutate(
+            champion, history, fails,
+            cycle=cycle,
+            hypothesis=exp.get("hypothesis", ""),
+        )
     except Exception as e:
         discard_experiment(workspace_dir, exp_id, desc)
         update_experiment(run_dir, exp_id, "failed", reason=str(e))
@@ -491,6 +514,7 @@ def resync_coordinator():
 
 def main():
     RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
+    resync_coordinator()
     run_dir, workspace_dir, target, rid = setup_run()
     print(f"[autoresearch] run_id={rid} mode={MODE} depth={DEPTH} dir={run_dir}", flush=True)
 
@@ -512,8 +536,15 @@ def main():
     consecutive_failures = 0
     merged = reverted = failed = 0
     done = 0
+    cycle = 0
 
     while True:
+        cycle += 1
+        # Periodically re-push full history so an ephemeral coordinator wipe
+        # (Railway redeploy) self-heals within a few cycles — no AWS needed.
+        if cycle % 6 == 0:
+            resync_coordinator()
+
         ctrl = _read_control(run_dir)
         action = (ctrl.get("action") or "none").lower()
         if action == "pause":
@@ -556,6 +587,7 @@ def main():
             if MODE == "policy":
                 history, champ_metrics, fails, ok = policy_cycle(
                     run_dir, workspace_dir, pending, history, champ_metrics, fails,
+                    cycle=cycle,
                 )
                 if history is None:
                     consecutive_failures += 1

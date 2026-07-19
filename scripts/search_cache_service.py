@@ -46,15 +46,38 @@ def arr(xs):
     return "'{" + ",".join('"' + str(x).replace('"', '') + '"' for x in (xs or [])) + "}'"
 
 
+REPO_DIR = os.environ.get("REPO_DIR", "/repo")
+
+
 class H(BaseHTTPRequestHandler):
     def _send(self, code, obj):
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(json.dumps(obj).encode())
 
+    def _file(self, path, ctype):
+        try:
+            with open(path, "rb") as f:
+                data = f.read()
+        except OSError:
+            return self._send(404, {"error": "not found"})
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(data)
+
     def do_GET(self):
         u = urlparse(self.path)
+        # Reliable, always-fresh leaderboard served straight from the host —
+        # no Railway ephemeral wipes, no deploy lag. Read-only; exposes only
+        # the leaderboard page and its data file (never the repo/secrets).
+        if u.path in ("/leaderboard", "/", "/autoresearch"):
+            return self._file(os.path.join(REPO_DIR, "dashboard", "autoresearch.html"), "text/html; charset=utf-8")
+        if u.path == "/radar":
+            return self._file(os.path.join(REPO_DIR, "data", "radar_snapshots.json"), "application/json")
         if u.path != "/search-cache":
             return self._send(404, {"error": "not found"})
         q = (parse_qs(u.query).get("q") or [""])[0]
