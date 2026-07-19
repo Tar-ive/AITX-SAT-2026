@@ -12,3 +12,8 @@ infra/terraform/.terraform.lock.hcl
 .playwright-cli/
 output/playwright/
 scripts/nemotron_config.json
+# Autoresearch run workspaces (git repos + ephemeral state)
+research/runs/
+research/registry.json
+!research/champion-lessons.md
+!research/.gitkeep
