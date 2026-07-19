@@ -20,6 +20,7 @@ from dashboard_api import (  # noqa: E402
     build_story,
     coordinator_json,
     database,
+    episodic_evidence,
     marketplace,
     measured_radar,
     rsi_idea_memory,
@@ -118,6 +119,17 @@ class handler(BaseHTTPRequestHandler):
                 self.json(rsi_idea_memory())
             except Exception as error:
                 self.json({"status": "unavailable", "error": str(error), "ideas": []}, 503)
+            return
+
+        if route == "/research-evidence":
+            try:
+                self.json({
+                    "status": "live",
+                    "database": "hosted Supabase",
+                    "episodes": episodic_evidence(),
+                })
+            except Exception as error:
+                self.json({"status": "unavailable", "error": str(error), "episodes": []}, 503)
             return
 
         self.json({"error": "not found"}, 404)

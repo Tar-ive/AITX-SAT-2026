@@ -7,7 +7,8 @@
 **AITX SAT 2026 edition.** Same loop as [karpathy/autoresearch](https://github.com/karpathy/autoresearch): an agent edits one file, runs a fixed evaluation, **keeps** the change if the metric Pareto-improves, otherwise **discards** via git. Here the artifact under optimization is a GPU-purchase **policy** (lessons text), scored on a frozen golden set — not `val_bpb` on a GPT.
 
 ```
-accuracy ↑ · retrieval_s ↓ · deal_safety ≥ champion · no Micro-Center-only bait as primary buy
+decision quality ↑ · seconds/answer ↓ · forbidden-platform risk ↓
+episodic-memory diff lines · agent-knowledge regression ↓
 ```
 
 ---
@@ -107,6 +108,60 @@ Hi have a look at program.md and let's kick off a new experiment! let's do the s
 
 ---
 
+## The live recursive-improvement loop
+
+The UI presents one continuous 11-step loop. Hover a card to read the operating
+detail; open or fullscreen its recording to inspect the underlying evidence.
+
+1. **EC2 Autoresearch** — an always-on Karpathy-style loop runs each rollout in
+   an isolated Git branch.
+2. **Discord Firehose** — `#daily` supplies agent prices, thread replies,
+   reactions, and user preferences.
+3. **Memory Audit** — the orchestrator inspects the current Hermes episodic
+   memory before changing the harness.
+4. **Metric Review** — it reads the current champion and the five live metrics.
+5. **Recall Evidence** — Supabase supplies prior experiments, successful
+   lessons, and user feedback.
+6. **Run Experiments** — bounded challengers try memory synthesis, distillation,
+   retrieval changes, or harness-component swaps.
+7. **Allowed Actions** — OpenShell policy and past safe actions constrain access.
+   HiddenLayer simulation is an allowed research route when its credentials are
+   configured.
+8. **Verifiers Judge** — Verifiers plus an LLM judge score the same frozen GPU,
+   RAM, and MacBook golden dataset.
+9. **Promote Harness** — only improvements across the five metrics are promoted;
+   the previous champion remains available for quick rollback.
+10. **Discord Evals** — evaluations and promotions go to `#eval` (with a safe
+    `#daily` fallback until that channel exists).
+11. **Human Review** — a weekly agent synthesis asks for approval or corrections,
+    which become the next cycle's evidence.
+
+The five Leaderboard evaluations are:
+
+1. **Decision quality**
+2. **Seconds per answer**
+3. **Forbidden-platform risk**
+4. **Hermes episodic memory diff lines**
+5. **Agent knowledge regression**
+
+![Live research evidence on the Leaderboard](output/playwright/leaderboard-research-evidence.png)
+
+![Eleven-step methodology loop](output/playwright/methodology-eleven-step-loop.png)
+
+[Watch the recorded UI walkthrough](dashboard/media/rsi-loop-live.mp4)
+
+### How evidence reaches a research point
+
+1. Discord exchanges are normalized into `public.episodes`.
+2. `/api/autoresearch-experiments` joins recent Supabase evidence with measured
+   EC2/Railway experiments as **evidence considered**, not as invented causality.
+3. Each hover state shows the agent change, user preference, episodic-memory
+   lines, rollout count, deal safety, and judging method.
+4. A kept experiment advances the champion; a discarded branch is retained in
+   the chart as negative evidence.
+
+---
+
 ## Data plane: EC2 → Railway → Vercel
 
 ```
@@ -163,10 +218,11 @@ Hi have a look at program.md and let's kick off a new experiment! let's do the s
    - `GET /autoresearch` — lightweight Karpathy staircase page
 
 3. **Vercel (Decision Frontier)** — `vercel.json` serves `dashboard/` as static files and routes `/api/*` to `api/index.py`, which calls `scripts/dashboard_api.py`. The leaderboard:
-   - loads `/api/autoresearch-experiments` (seeded `data/autoresearch_experiments.json`, justified by Verifiers + Prime-RL + live radar anchors)
-   - loads `/api/improvement` from `data/rsi_runs.csv` / Supabase when available
+   - loads `/api/autoresearch-experiments` from the live EC2/Railway feed and
+     enriches it with recent Supabase episodic evidence
+   - exposes `/api/research-evidence` for the underlying user-feedback records
    - loads marketplace cards from hosted Supabase
-   - plays methodology videos (`dashboard/media/rsi-0*.mp4`) including before (Micro Center bait) / after (online Newegg)
+   - plays the 11 methodology recordings from `dashboard/media/`
 
 ### Environment variables (by hop)
 

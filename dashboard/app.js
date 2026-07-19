@@ -199,6 +199,27 @@ function renderImprovementChart(runs,candidates=[]){
   }}});
 }
 
+const metricMeta={
+  accuracy:{label:"Decision quality",format:value=>Number(value).toFixed(3)},
+  retrieval_s:{label:"Seconds per answer",format:value=>`${Number(value).toFixed(2)}s`},
+  price_regression:{label:"Forbidden-platform risk",format:value=>`${Number(value).toFixed(1)}%`},
+  episodic_diff_lines:{label:"Hermes episodic memory diff lines",format:value=>`${Number(value).toFixed(0)} lines`},
+  knowledge_regression:{label:"Agent knowledge regression",format:value=>Number(value).toFixed(4)}
+};
+
+function renderResearchDetail(exp,metric="accuracy",previous=null){
+  if(!exp)return;
+  const evidence=exp.evidence||{};
+  const value=Number(exp[metric]??0), prior=Number(previous?.[metric]??value);
+  const delta=value-prior, meta=metricMeta[metric]||metricMeta.accuracy;
+  $("#research-detail-title").textContent=`#${exp.experiment} · ${exp.description||exp.version}`;
+  $("#research-detail-decision").textContent=`${exp.kept||exp.accepted?"KEPT":"DISCARDED"} · ${meta.label}: ${meta.format(value)} · Δ ${delta>=0?"+":""}${meta.format(delta)}`;
+  $("#research-detail-source").textContent=[evidence.source,evidence.source_detail].filter(Boolean).join(" · ")||"Live EC2 experiment";
+  $("#research-detail-change").textContent=evidence.improvement||exp.description||"No harness change recorded.";
+  $("#research-detail-preference").textContent=evidence.preference||"No explicit preference attached to this trial.";
+  $("#research-detail-test").textContent=[evidence.memory_change,evidence.tested_by].filter(Boolean).join(" · ")||"Verifiers golden set + LLM judge";
+}
+
 /** Karpathy-style keep/discard staircase for one metric. */
 function renderKarpathyChart(canvasId, experiments, metric, opts={}){
   const canvas=$(`#${canvasId}`);
@@ -276,10 +297,20 @@ function renderKarpathyChart(canvasId, experiments, metric, opts={}){
             },
             afterBody:items=>{
               const exp=experiments[items[0]?.dataIndex ?? 0];
-              return exp?.description?[`${exp.kept||exp.accepted?"KEPT":"discarded"}: ${exp.description}`]:[];
+              const evidence=exp?.evidence||{};
+              return exp?[
+                `${exp.kept||exp.accepted?"KEPT":"discarded"}: ${exp.description}`,
+                `Evidence: ${evidence.source||"live EC2 research"}`,
+                `Preference: ${(evidence.preference||"none attached").slice(0,90)}`,
+                `Test: ${(evidence.tested_by||"Verifiers golden set").slice(0,90)}`
+              ]:[];
             }
           }
         }
+      },
+      onHover:(_event,elements)=>{
+        const index=elements[0]?.index;
+        if(index!=null)renderResearchDetail(experiments[index],metric,experiments[index-1]);
       },
       scales:{
         x:{
@@ -327,33 +358,31 @@ function fmtDelta(start, now, digits=3, invert=false){
 
 function renderExperiments(payload){
   state.experiments=payload;
-  const exps=payload.experiments||[];
+  const exps=(payload.experiments||[]).map(exp=>({
+    ...exp,
+    episodic_diff_lines:Number(exp.episodic_diff_lines??0),
+    knowledge_regression:Number(exp.knowledge_regression??exp.agent_regression??0)
+  }));
   const s=payload.summary||{};
-  $("#improvement-evidence").textContent=`${s.experiments||exps.length} experiments · ${s.kept||0} kept · ${payload.seed}`;
-  $("#seed-value").textContent=String(payload.seed??"—");
+  const sourceLabel=payload.seed==="live"?"live":payload.source||"offline snapshot";
+  $("#improvement-evidence").textContent=`${s.experiments||exps.length} experiments · ${s.kept||0} kept · ${sourceLabel}`;
+  $("#seed-value").textContent=sourceLabel;
   $("#seed-exp-count").textContent=String(s.experiments??exps.length);
   $("#seed-kept-count").textContent=String(s.kept??0);
   const note=payload.seed_justification?.supabase_note||"";
   $("#seed-note").textContent=note||"Measured experiment history from the live EC2 loop.";
-  const methodSeed=$("#method-seed");
-  if(methodSeed)methodSeed.textContent=String(payload.seed??"—");
-
   $("#acc-delta").textContent=`${(s.accuracy_start??0).toFixed(3)} → ${(s.accuracy_now??0).toFixed(3)}`;
   $("#ret-delta").textContent=`${(s.retrieval_start??0).toFixed(1)}s → ${(s.retrieval_now??0).toFixed(1)}s`;
   $("#price-delta").textContent=`${(s.price_regression_start??0).toFixed(1)} → ${(s.price_regression_now??0).toFixed(1)}`;
-  $("#agent-delta").textContent=`${(s.agent_regression_start??0).toFixed(3)} → ${(s.agent_regression_now??0).toFixed(3)}`;
+  $("#memory-delta").textContent=`${Number(s.episodic_diff_now??exps.at(-1)?.episodic_diff_lines??0).toFixed(0)} lines`;
+  $("#knowledge-delta").textContent=`${Number(s.knowledge_regression_start??0).toFixed(3)} → ${Number(s.knowledge_regression_now??exps.at(-1)?.knowledge_regression??0).toFixed(3)}`;
 
   renderKarpathyChart("chart-accuracy", exps, "accuracy", {yLabel:"Accuracy (↑ better)"});
   renderKarpathyChart("chart-retrieval", exps, "retrieval_s", {yLabel:"Seconds (↓ better)", lowerIsBetter:false});
   renderKarpathyChart("chart-price", exps, "price_regression", {yLabel:"Price regression (↓ better)"});
-  renderKarpathyChart("chart-agent", exps, "agent_regression", {yLabel:"Agent regression (↓ better)"});
-  renderKarpathyChart("chart-overview", exps, "accuracy", {yLabel:"Accuracy", annotate:true});
-
-  const kept=exps.filter(e=>e.kept||e.accepted);
-  $("#kept-log").innerHTML=kept.map(e=>`
-    <li><b>#${e.experiment}</b> <span>${esc(e.ts?.slice(0,16)||"")}</span>
-    <strong>${e.accuracy.toFixed(4)}</strong> · ${e.retrieval_s.toFixed(2)}s
-    <em>${esc(e.description)}</em></li>`).join("");
+  renderKarpathyChart("chart-memory", exps, "episodic_diff_lines", {yLabel:"Changed lines"});
+  renderKarpathyChart("chart-knowledge", exps, "knowledge_regression", {yLabel:"Regression (↓ better)",annotate:true});
+  renderResearchDetail(exps.at(-1),"accuracy",exps.at(-2));
 }
 
 async function loadExperiments(){
@@ -430,6 +459,17 @@ function initRsiLoop(){
   const orbit=new THREE.Group();
   scene.add(orbit);
   const count=cards.length, rx=4.5, ry=4;
+  const stepLabel=$("#loop-step-label"), stepTitle=$("#loop-step-title"), stepDetail=$("#loop-step-detail");
+  const showStep=card=>{
+    const index=Number(card.dataset.loopIndex), title=$("h3",card)?.textContent||"Research Loop";
+    stepLabel.textContent=`Step ${String(index+1).padStart(2,"0")} · live`;
+    stepTitle.innerHTML=title.replace(" ","<br>");
+    stepDetail.textContent=card.dataset.loopDetail||"Measured evidence moves through the recursive loop.";
+  };
+  cards.forEach(card=>{
+    card.addEventListener("mouseenter",()=>showStep(card));
+    card.addEventListener("focusin",()=>showStep(card));
+  });
   const points=Array.from({length:64},(_,i)=>{
     const angle=i/64*Math.PI*2;
     return new THREE.Vector3(Math.cos(angle)*rx,Math.sin(angle)*ry,0);
@@ -519,8 +559,6 @@ $("#product-select").addEventListener("change",event=>{$("#target-price").value=
 $("#watch-form").addEventListener("submit",event=>{event.preventDefault();renderMarket(state.market);showToast("Target updated locally. Sign-in is required before saving a Supabase watchlist.")});
 $$(".segmented button").forEach(el=>el.addEventListener("click",()=>{$$(".segmented button").forEach(button=>button.classList.toggle("active",button===el));state.limit=+el.dataset.range;renderMarketChart(state.market?.listings||[])}));
 $$(".filter-chip").forEach(el=>el.addEventListener("click",()=>{$$(".filter-chip").forEach(button=>button.classList.toggle("active",button===el));renderDeals(el.dataset.filter)}));
-$("#benchmark-select").addEventListener("change",event=>$("#benchmark-label").textContent=event.target.value);
-$("#run-evaluation").addEventListener("click",async event=>{event.currentTarget.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Refreshing';await Promise.all([loadImprovement(),loadOperations(),loadExperiments()]);event.currentTarget.innerHTML='<i class="fa-solid fa-check"></i> History refreshed';showToast("Evidence refreshed. Promotion remains a human decision.")});
 $(".toggle").addEventListener("click",event=>event.currentTarget.classList.toggle("active"));
 const enterFullscreen=async element=>{
   const video=$("video",element);
@@ -572,5 +610,5 @@ zoom.addEventListener("close",()=>{const video=$("video",zoomStage);video?.pause
 window.addEventListener("hashchange",()=>showPage(location.hash.slice(1)||"dashboard"));
 
 initRsiLoop();
-Promise.allSettled([loadMarket(),loadDeals(),loadImprovement(),loadOperations(),loadRsiIdeas(),loadExperiments()]);
+Promise.allSettled([loadMarket(),loadDeals(),loadRsiIdeas(),loadExperiments()]);
 showPage(location.hash.slice(1)||"dashboard");

@@ -95,20 +95,24 @@ body.focus-view .mobile-menu { display: block; }
 .method-demo-note { margin: 12px 0 0; color: var(--muted); font: 500 9px var(--mono); }
 .method-demo-note i { margin-right: 6px; color: var(--green); }
 .strategy-cycle { margin: 0 -44px -72px; padding: 64px 44px 84px; border: 0; background: #050505; color: #f6f6f2; }
+.methodology .strategy-cycle { padding-top: 34px; }
 .loop-title { max-width: 980px; margin: 0 0 28px; font: 400 clamp(48px, 6.2vw, 88px)/.98 var(--sans); letter-spacing: -.055em; }
-.rsi-loop-stage { position: relative; height: 1100px; overflow: hidden; background: #050505; }
+.methodology .loop-title { margin-bottom: 4px; font-size: clamp(42px, 4.5vw, 64px); }
+.rsi-loop-stage { position: relative; height: 980px; overflow: hidden; background: #050505; }
 #rsi-loop-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .rsi-loop-cards { position: absolute; inset: 0; pointer-events: none; }
-.loop-card { position: absolute; left: 50%; top: 50%; width: clamp(190px, 19vw, 220px); overflow: hidden; border: 1px solid #343434; background: #050505; color: #f7f7f4; pointer-events: auto; will-change: left, top, transform, opacity; }
+.loop-card { position: absolute; left: 50%; top: 50%; width: clamp(124px, 13vw, 158px); overflow: hidden; border: 1px solid #343434; background: #050505; color: #f7f7f4; pointer-events: auto; will-change: left, top, transform, opacity; transition: border-color .18s, box-shadow .18s; }
+.loop-card:hover, .loop-card:focus-within { border-color: #8ee879; box-shadow: 0 0 0 1px rgba(142,232,121,.22); }
 .loop-card .method-video { aspect-ratio: 16 / 9; border-bottom: 1px solid #292929; background: #0b0b0b; }
 .loop-card .method-video video { filter: saturate(.72) contrast(1.06); }
-.loop-card h3 { margin: 0; padding: 14px 12px 16px; font: 400 22px/1 var(--sans); letter-spacing: -.025em; text-align: center; }
+.loop-card h3 { margin: 0; padding: 10px 8px 12px; font: 400 15px/1 var(--sans); letter-spacing: -.025em; text-align: center; }
 .loop-card .method-video-actions { top: 7px; right: 7px; gap: 5px; opacity: 0; transition: opacity .18s; }
 .loop-card:hover .method-video-actions, .loop-card:focus-within .method-video-actions { opacity: 1; }
 .loop-card .method-video-actions button { width: 28px; height: 28px; border-color: #4b4b4b; background: rgba(0,0,0,.76); font-size: 10px; }
-.rsi-loop-center { position: absolute; z-index: 8; left: 50%; top: 50%; display: grid; width: 210px; height: 210px; padding: 36px 20px 24px; transform: translate(-50%, -50%); border: 1px solid #323232; border-radius: 50%; background: rgba(5,5,5,.94); color: #f6f6f2; text-align: center; place-content: center; }
+.rsi-loop-center { position: absolute; z-index: 8; left: 50%; top: 50%; display: grid; width: 270px; height: 270px; padding: 38px 28px 34px; transform: translate(-50%, -50%); border: 1px solid #323232; border-radius: 50%; background: rgba(5,5,5,.96); color: #f6f6f2; text-align: center; place-content: center; }
 .rsi-loop-center > span:not(.visually-hidden) { color: #8ee879; font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
-.rsi-loop-center strong { margin-top: 8px; font: 400 34px/1.18 var(--sans); letter-spacing: -.04em; }
+.rsi-loop-center strong { margin-top: 7px; font: 400 30px/1.08 var(--sans); letter-spacing: -.04em; }
+.rsi-loop-center > small { display: block; margin-top: 10px; color: #a5aaa4; font: 400 10px/1.45 var(--sans); }
 .rsi-loop-center button { position: absolute; right: 50%; bottom: 16px; width: 28px; height: 28px; transform: translateX(50%); border: 1px solid #3c3c3c; border-radius: 50%; background: #0b0b0b; color: #8ee879; font-size: 9px; }
 .visually-hidden { position: absolute!important; width: 1px!important; height: 1px!important; overflow: hidden!important; clip: rect(0 0 0 0)!important; clip-path: inset(50%)!important; white-space: nowrap!important; }
 .rsi-loop-stage.three-unavailable { height: auto; padding: 18px; }
@@ -159,6 +163,7 @@ body.focus-view .mobile-menu { display: block; }
   .rsi-loop-center { width: 70px; height: 70px; padding: 10px 4px; }
   .rsi-loop-center > span:not(.visually-hidden) { font-size: 6px; }
   .rsi-loop-center strong { margin-top: 3px; font-size: 12px; }
+  .rsi-loop-center > small { display: none; }
   .rsi-loop-center button { bottom: 2px; width: 16px; height: 16px; font-size: 5px; }
   .video-zoom { width: calc(100vw - 20px); }
   .video-zoom-stage, .video-zoom-stage .method-video-placeholder { min-height: 55vh; }
@@ -192,9 +197,26 @@ body.focus-view .mobile-menu { display: block; }
 .ba-card h3{margin:6px 0 0;font:600 24px var(--serif)}
 .ba-card>p{margin:0;padding:12px 18px 16px;font-size:12px;color:var(--muted);min-height:64px}
 .ba-card .method-video{aspect-ratio:4/5;border-block:1px solid var(--ink)}
+.research-detail{display:grid;grid-template-columns:minmax(210px,.65fr) 2fr;margin:2px 0 20px;border:1px solid var(--ink);background:#171711;color:#fffdf7}
+.research-detail-head{padding:20px;border-right:1px solid #3d3b35;background:#10100d}
+.research-detail-head strong,.research-detail-head span{display:block}
+.research-detail-head strong{margin-top:8px;font:600 25px/1.05 var(--serif)}
+.research-detail-head span{margin-top:12px;color:#8ee879;font:500 10px/1.5 var(--mono)}
+.research-detail dl{display:grid;grid-template-columns:1fr 1fr;margin:0}
+.research-detail dl div{min-width:0;padding:16px 18px;border-right:1px solid #3d3b35;border-bottom:1px solid #3d3b35}
+.research-detail dl div:nth-child(2n){border-right:0}
+.research-detail dl div:nth-last-child(-n+2){border-bottom:0}
+.research-detail dt{color:#8ee879;font:500 9px/1.4 var(--mono);letter-spacing:.05em;text-transform:uppercase}
+.research-detail dt i{width:16px}
+.research-detail dd{margin:8px 0 0;color:#d3d1ca;font:400 11px/1.5 var(--sans)}
 @media (max-width:900px){
   .karpathy-grid,.before-after-grid,.seed-bar{grid-template-columns:1fr}
   .seed-bar>div{border-right:0;border-bottom:1px solid var(--line)}
   .kept-log li{grid-template-columns:40px 1fr;gap:4px}
   .kept-log span,.kept-log strong{grid-column:2}
+  .research-detail{grid-template-columns:1fr}
+  .research-detail-head{border-right:0;border-bottom:1px solid #3d3b35}
+  .research-detail dl{grid-template-columns:1fr}
+  .research-detail dl div{border-right:0}
+  .research-detail dl div:nth-last-child(2){border-bottom:1px solid #3d3b35}
 }

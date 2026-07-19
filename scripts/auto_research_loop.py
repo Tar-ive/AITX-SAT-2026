@@ -72,7 +72,8 @@ OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENCODE_KEY = os.environ.get("OPENCODE_API_KEY", "")
 COORD = os.environ.get("COORDINATOR_URL", "").rstrip("/")
 DISCORD_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
-DISCORD_CHANNEL = os.environ.get("DISCORD_RSI_CHANNEL_ID", "1527922756480401478")
+DISCORD_GUILD = os.environ.get("DISCORD_SERVER_ID", "1527850934535717055")
+DISCORD_EVAL_CHANNEL = os.environ.get("DISCORD_EVAL_CHANNEL_ID", "")
 DISCORD_INSIGHT_EVERY = int(os.environ.get("DISCORD_INSIGHT_EVERY", "5"))
 
 BASE_SYSTEM = """You are a GPU purchase-decision judge for a buying-assistant team.
@@ -280,8 +281,24 @@ def post_discord_insight(entry, history):
         f"Hypothesis: {entry.get('hypothesis') or 'baseline policy check'}"
     )
     try:
+        channel = DISCORD_EVAL_CHANNEL
+        if not channel:
+            channels = requests.get(
+                f"https://discord.com/api/v10/guilds/{DISCORD_GUILD}/channels",
+                headers={"Authorization": f"Bot {DISCORD_TOKEN}"},
+                timeout=15,
+            )
+            channels.raise_for_status()
+            rows = channels.json()
+            channel = next(
+                (row["id"] for row in rows if row.get("name") == "eval"),
+                next((row["id"] for row in rows if row.get("name") == "daily"), ""),
+            )
+        if not channel:
+            print("[autoresearch] Discord insight skipped: no #eval or #daily channel", flush=True)
+            return
         response = requests.post(
-            f"https://discord.com/api/v10/channels/{DISCORD_CHANNEL}/messages",
+            f"https://discord.com/api/v10/channels/{channel}/messages",
             headers={"Authorization": f"Bot {DISCORD_TOKEN}"},
             json={"content": content[:1900]},
             timeout=15,
