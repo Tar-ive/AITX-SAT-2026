@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="style.css?v=2">
-  <link rel="stylesheet" href="layout-fixes.css?v=15">
+  <link rel="stylesheet" href="layout-fixes.css?v=16">
 </head>
 <body>
   <aside class="rail" aria-label="Primary navigation">
@@ -151,15 +151,15 @@
 
       <div class="karpathy-grid" id="karpathy-grid">
         <article class="panel karpathy-panel">
-          <div class="panel-head"><div><p class="eyebrow">01 · Accuracy ↑</p><h2>Decision quality</h2></div><span class="data-badge" id="acc-delta">—</span></div>
+          <div class="panel-head"><div><p class="eyebrow">01 · Decision quality ↑</p><h2>Decision quality</h2></div><span class="data-badge" id="acc-delta">—</span></div>
           <div class="karpathy-chart-wrap"><canvas id="chart-accuracy" aria-label="Accuracy staircase"></canvas></div>
         </article>
         <article class="panel karpathy-panel">
-          <div class="panel-head"><div><p class="eyebrow">02 · Retrieval ↓</p><h2>Seconds per answer</h2></div><span class="data-badge" id="ret-delta">—</span></div>
+          <div class="panel-head"><div><p class="eyebrow">02 · Seconds per answer ↓</p><h2>Seconds per answer</h2></div><span class="data-badge" id="ret-delta">—</span></div>
           <div class="karpathy-chart-wrap"><canvas id="chart-retrieval" aria-label="Retrieval time staircase"></canvas></div>
         </article>
         <article class="panel karpathy-panel">
-          <div class="panel-head"><div><p class="eyebrow">03 · Price regression ↓</p><h2>Forbidden-platform risk</h2></div><span class="data-badge" id="price-delta">—</span></div>
+          <div class="panel-head"><div><p class="eyebrow">03 · Forbidden-platform risk ↓</p><h2>Forbidden-platform risk</h2></div><span class="data-badge" id="price-delta">—</span></div>
           <div class="karpathy-chart-wrap"><canvas id="chart-price" aria-label="Price regression staircase"></canvas></div>
         </article>
         <article class="panel karpathy-panel">
@@ -189,7 +189,6 @@
 
     <section class="page methodology" id="methodology-page">
       <article class="strategy-cycle">
-        <h2 class="loop-title">Evidence becomes improvement.</h2>
         <div class="rsi-loop-stage" id="rsi-loop-stage" aria-label="Eleven-step recursive self-improvement workflow">
           <canvas id="rsi-loop-canvas" aria-hidden="true"></canvas>
           <div class="rsi-loop-center">
@@ -225,7 +224,7 @@
             </div>
             <h3>Discord Firehose</h3>
           </article>
-          <article class="method-video-card loop-card" data-loop-index="2" data-loop-detail="The orchestrator audits the current Hermes episodic memory and checks what the harness already knows before editing it.">
+          <article class="method-video-card loop-card" data-loop-index="2" data-loop-detail="The orchestrator versions Hermes SOUL.md in Supabase and reads its exact diff before editing the harness.">
             <div class="method-video">
               <video autoplay muted loop playsinline preload="metadata" poster="media/rsi-02-pull-lessons.jpg?v=2">
                 <source src="media/rsi-02-pull-lessons.mp4?v=2" type="video/mp4">
@@ -359,7 +358,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
-  <script src="app.js?v=23"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js"></script>
+  <script src="app.js?v=24"></script>
 </body>
 </html>

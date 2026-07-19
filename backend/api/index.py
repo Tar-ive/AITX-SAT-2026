@@ -21,10 +21,12 @@ from dashboard_api import (  # noqa: E402
     coordinator_json,
     database,
     episodic_evidence,
+    harness_experiments,
     marketplace,
     measured_radar,
     rsi_idea_memory,
     rsi_operations,
+    soul_history,
     try_supabase_rsi_runs,
 )
 
@@ -127,6 +129,8 @@ class handler(BaseHTTPRequestHandler):
                     "status": "live",
                     "database": "hosted Supabase",
                     "episodes": episodic_evidence(),
+                    "experiments": harness_experiments(),
+                    "soul": soul_history(),
                 })
             except Exception as error:
                 self.json({"status": "unavailable", "error": str(error), "episodes": []}, 503)

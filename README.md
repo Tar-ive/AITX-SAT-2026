@@ -129,8 +129,8 @@ detail; open or fullscreen its recording to inspect the underlying evidence.
    an isolated Git branch.
 2. **Discord Firehose** — `#daily` supplies agent prices, thread replies,
    reactions, and user preferences.
-3. **Memory Audit** — the orchestrator inspects the current Hermes episodic
-   memory before changing the harness.
+3. **Memory Audit** — the orchestrator versions Hermes `SOUL.md` in Supabase
+   and reads its exact diff before changing the harness.
 4. **Metric Review** — it reads the current champion and the five live metrics.
 5. **Recall Evidence** — Supabase supplies prior experiments, successful
    lessons, and user feedback.
@@ -143,8 +143,8 @@ detail; open or fullscreen its recording to inspect the underlying evidence.
    RAM, and MacBook golden dataset.
 9. **Promote Harness** — only improvements across the five metrics are promoted;
    the previous champion remains available for quick rollback.
-10. **Discord Evals** — evaluations and promotions go to `#eval` (with a safe
-    `#daily` fallback until that channel exists).
+10. **Discord Evals** — every evaluation/promotion opens a titled post in the
+    `#eval` forum; replies remain attached to that evaluation.
 11. **Human Review** — a weekly agent synthesis asks for approval or corrections,
     which become the next cycle's evidence.
 
@@ -160,15 +160,17 @@ The five Leaderboard evaluations are:
 
 ![Eleven-step methodology loop](output/playwright/methodology-eleven-step-loop.png)
 
-[Watch the recorded UI walkthrough](dashboard/media/rsi-loop-live.mp4)
+[Watch the recorded UI walkthrough](frontend/media/rsi-loop-live.mp4)
 
 ### How evidence reaches a research point
 
-1. Discord exchanges are normalized into `public.episodes`.
-2. `/api/autoresearch-experiments` joins recent Supabase evidence with measured
-   EC2/Railway experiments as **evidence considered**, not as invented causality.
-3. Each hover state shows the agent change, user preference, episodic-memory
-   lines, rollout count, deal safety, and judging method.
+1. Discord exchanges are normalized into `public.episodes`; Hermes preference
+   changes are versioned in `public.agent_soul`.
+2. The loop writes the five metrics and explicit `evidence_episode_ids` to
+   `public.harness_experiments`; `/api/autoresearch-experiments` joins only those
+   linked episodes. Legacy runs are clearly marked as unlinked.
+3. Each hover state shows the agent change, user preference, current Hermes
+   `SOUL.md` diff lines, rollout count, deal safety, and judging method.
 4. A kept experiment advances the champion; a discarded branch is retained in
    the chart as negative evidence.
 
@@ -179,18 +181,19 @@ The five Leaderboard evaluations are:
 ```
  ┌─────────────────────────────┐
  │  EC2 agent host (Terraform) │
- │  infra/terraform            │
+ │  backend/infra/terraform    │
  │                             │
  │  docker compose stack       │
  │  • Discord agents / Hermes  │
- │  • scripts/auto_research_   │
+ │  • autoresearch/scripts/    │
+ │    auto_research_           │
  │    loop.py  OR  train.py    │
  │  • nightly RSI / episodes   │
  └──────────────┬──────────────┘
                 │ POST /api/radar
                 │ POST /api/evaluations
                 │ POST /api/episodic-memory
-                │ (optional) SQL → public.rsi_runs / episodes
+                │ SQL → episodes / agent_soul / harness_experiments
                 ▼
  ┌─────────────────────────────┐
  │  Railway                    │
@@ -207,8 +210,10 @@ The five Leaderboard evaluations are:
  ┌─────────────────────────────┐     ┌──────────────────────┐
  │  Vercel                     │────▶│  Supabase (hosted)   │
  │  vercel.json                │     │  marketplace rows    │
- │  • dashboard/*  (static)    │     │  rsi_runs / episodes │
- │  • api/index.py (serverless)│     │  search_cache        │
+ │  • frontend/*  (static)     │     │  rsi_runs / episodes │
+ │  • backend/api/index.py     │     │  search_cache        │
+ │    (serverless)             │     │  harness_experiments │
+ │                             │     │  agent_soul          │
  │    /api/marketplace         │     └──────────────────────┘
  │    /api/improvement         │
  │    /api/autoresearch-       │
@@ -218,23 +223,40 @@ The five Leaderboard evaluations are:
 
 ### What each hop does
 
-1. **EC2 (always-on)** — Terraform provisions the host (`infra/terraform`). `deploy/docker-compose` runs the agent sandbox. Autoresearch either:
+1. **EC2 (always-on)** — Terraform provisions the host
+   (`backend/infra/terraform`). `nemoclaw/deploy/docker-compose` runs the agent
+   sandbox. Autoresearch either:
    - runs the Karpathy loop by hand (`train.py` + git keep/discard), or
-   - runs `scripts/auto_research_loop.py` on a timer (`CYCLE_SECS=300`), which mutates lessons (rotating strategies + temperature), evaluates via the same prepare-style rubric, and **POSTs each cycle** to Railway (with periodic full-history resync so ephemeral coordinator wipes self-heal).
-   The host also serves a reliable live leaderboard at `/leaderboard` + `/radar` via `scripts/search_cache_service.py` (no Railway lag/wipes). Nightly RSI writes measured rows into Supabase `public.rsi_runs` when `SUPABASE_DB_PW` is set.
+   - runs `autoresearch/scripts/auto_research_loop.py` on a timer
+     (`CYCLE_SECS=300`), recalls Supabase evidence, mutates lessons, evaluates,
+     writes `harness_experiments`, and posts each cycle to Railway.
+   The host also serves `/leaderboard` + `/radar` through
+   `backend/scripts/search_cache_service.py`. Nightly RSI writes episodes and
+   measured runs to Supabase.
 
-2. **Railway (coordinator)** — `Procfile` / `railway.toml` start `scripts/nemotron_coordinator.py`. It stores radar snapshots + evaluations in memory/disk on the service and exposes:
+   Sync the preference memory manually when testing:
+
+   ```bash
+   python autoresearch/scripts/soul_sync.py push --agent hermes --file SOUL.md
+   python autoresearch/scripts/soul_sync.py diff-lines --agent hermes
+   ```
+
+2. **Railway (coordinator)** — `Procfile` / `railway.toml` start
+   `nemoclaw/scripts/nemotron_coordinator.py`. It stores radar snapshots and
+   evaluations on the service and exposes:
    - `GET/POST /api/radar` — experiment history for live charts
    - `GET/POST /api/evaluations`
    - `GET /api/autoresearch/status`, `POST /api/autoresearch/control` (pause/stop)
    - `GET /autoresearch` — lightweight Karpathy staircase page
 
-3. **Vercel (Decision Frontier)** — `vercel.json` serves `dashboard/` as static files and routes `/api/*` to `api/index.py`, which calls `scripts/dashboard_api.py`. The leaderboard:
+3. **Vercel (Decision Frontier)** — `vercel.json` serves `frontend/` as static
+   files and routes `/api/*` to `backend/api/index.py`, which calls
+   `backend/scripts/dashboard_api.py`. The leaderboard:
    - loads `/api/autoresearch-experiments` from the live EC2/Railway feed and
      enriches it with recent Supabase episodic evidence
    - exposes `/api/research-evidence` for the underlying user-feedback records
    - loads marketplace cards from hosted Supabase
-   - plays the 11 methodology recordings from `dashboard/media/`
+   - plays the 11 methodology recordings from `frontend/media/`
 
 ### Environment variables (by hop)
 
@@ -247,8 +269,8 @@ The five Leaderboard evaluations are:
 Local dashboard without Vercel:
 
 ```bash
-python scripts/dashboard_api.py   # http://127.0.0.1:8787
-open dashboard/index.html#leaderboard
+python backend/scripts/dashboard_api.py   # http://127.0.0.1:8787
+open frontend/index.html#leaderboard
 ```
 
 ---
@@ -259,14 +281,14 @@ Measured anchors that justify the committed `results.tsv` / `progress.png` seed:
 
 | Anchor | Source | Accuracy | Latency |
 |--------|--------|----------|---------|
-| Verifiers baseline (memory OFF) | `data/rsi_runs.csv` | 0.5511 | 35.5s |
-| Prime-RL v1 | `data/latest_rsi_eval.json` | 0.5822 | 6.77s |
+| Verifiers baseline (memory OFF) | `autoresearch/data/rsi_runs.csv` | 0.5511 | 35.5s |
+| Prime-RL v1 | `autoresearch/data/latest_rsi_eval.json` | 0.5822 | 6.77s |
 | Live promotion | Railway `/api/radar` cycle-1 | 0.5933 | 2.84s |
 
 Regenerate the demo history:
 
 ```bash
-python scripts/seed_autoresearch_history.py
+python autoresearch/scripts/seed_autoresearch_history.py
 ```
 
 ---
@@ -274,7 +296,8 @@ python scripts/seed_autoresearch_history.py
 ## Platform notes
 
 - **Inference:** NVIDIA Integrate API with OpenRouter fallback (same model id).
-- **Prime / Verifiers:** `environments/gpu_deal_judge_v1` for held-out PC-purchase decisions.
+- **Prime / Verifiers:** `autoresearch/environments/gpu_deal_judge_v1` for
+  held-out PC-purchase decisions.
 - **Terraform apply** may be unavailable from ephemeral Cloud Agent environments (SSO / local state); the loop itself runs anywhere with API keys — laptop, Railway sidecar, or an already-provisioned EC2 host.
 - Credentials stay in `.env` (gitignored). See `docs/agent-credentials.md`.
 

@@ -10,9 +10,9 @@ Runs at 05:30 UTC (after the gateway's 05:00 episodic distillation):
        episodic     tonight's synthesized MEMORY.md lessons
        exemplar-sft lessons distilled from good episodes (SFT-style route)
        autoresearch the mutation loop's current champion
-  4. EVALUATE and select on the four criteria
-       accuracy UP · retrieval LOW · deal safety (price regression) ·
-       stability (model regression vs champion)
+  4. EVALUATE and select on five criteria
+       decision quality UP · seconds/answer LOW · forbidden-platform risk LOW ·
+       episodic-memory diff lines · knowledge regression LOW
   5. PROMOTE daily: winner's lessons are written into the LIVE sandbox
      MEMORY.md — the Discord agents train on it all day
   6. WEEKLY (Sundays): a synthesis report goes to Discord for human
@@ -111,15 +111,28 @@ def select(results, champ_acc):
     return max(viable, key=lambda n: (round(results[n]["accuracy"], 3), -order.index(n)))
 
 
-def discord_post(token, content):
+def discord_post(token, content, title="RSI evaluation"):
     chans = requests.get(f"https://discord.com/api/v10/guilds/{GUILD}/channels",
                          headers={"Authorization": f"Bot {token}"}, timeout=15).json()
-    target = next((c["id"] for c in chans if c.get("name") == "eval"),
-                  next((c["id"] for c in chans if c.get("name") == "daily"), None))
-    if target:
-        requests.post(f"https://discord.com/api/v10/channels/{target}/messages",
-                      headers={"Authorization": f"Bot {token}"},
-                      json={"content": content[:1900]}, timeout=15)
+    target = next((c for c in chans if c.get("name") == "eval"),
+                  next((c for c in chans if c.get("name") == "daily"), None))
+    if not target:
+        return
+    headers = {"Authorization": f"Bot {token}"}
+    if target.get("type") == 15:
+        requests.post(
+            f"https://discord.com/api/v10/channels/{target['id']}/threads",
+            headers=headers,
+            json={"name": title[:90], "message": {"content": content[:1900]}},
+            timeout=15,
+        ).raise_for_status()
+    else:
+        requests.post(
+            f"https://discord.com/api/v10/channels/{target['id']}/messages",
+            headers=headers,
+            json={"content": content[:1900]},
+            timeout=15,
+        ).raise_for_status()
 
 
 def discord_episodes(token):
@@ -137,6 +150,22 @@ def discord_episodes(token):
         row for row in channels.json()
         if row.get("type") == 0 and row.get("name") in {"daily", "gpu-desk"}
     ]
+    parent_ids = {row["id"] for row in wanted}
+    parent_names = {row["id"]: row["name"] for row in wanted}
+    active = requests.get(
+        f"https://discord.com/api/v10/guilds/{GUILD}/threads/active",
+        headers=headers,
+        timeout=15,
+    )
+    active.raise_for_status()
+    wanted.extend(
+        {
+            **row,
+            "name": f"{parent_names.get(row.get('parent_id'), 'daily')}/{row.get('name', 'thread')}",
+        }
+        for row in active.json().get("threads", [])
+        if row.get("parent_id") in parent_ids
+    )
     episodes = []
     for channel in wanted:
         response = requests.get(
@@ -150,9 +179,15 @@ def discord_episodes(token):
         for message in reversed(response.json()):
             author = message.get("author", {})
             if not author.get("bot"):
-                if pending and pending["responses"]:
+                response_ids = {row["id"] for row in (pending or {}).get("responses", [])}
+                reply_to = (message.get("message_reference") or {}).get("message_id")
+                if pending and pending["responses"] and reply_to in response_ids:
+                    pending["human_feedback"].append(message)
+                elif pending and pending["responses"]:
                     episodes.append(_discord_episode(channel, pending))
-                pending = {"message": message, "responses": []}
+                    pending = {"message": message, "responses": [], "human_feedback": []}
+                else:
+                    pending = {"message": message, "responses": [], "human_feedback": []}
             elif pending:
                 pending["responses"].append(message)
         if pending and pending["responses"]:
@@ -163,14 +198,20 @@ def discord_episodes(token):
 def _discord_episode(channel, exchange):
     source = exchange["message"]
     replies = exchange["responses"]
+    human_feedback = exchange.get("human_feedback", [])
     reactions = [
-        reaction.get("emoji", {}).get("name", "")
-        for row in [source, *replies]
+        {
+            "emoji": reaction.get("emoji", {}).get("name", ""),
+            "count": reaction.get("count", 1),
+        }
+        for row in [source, *replies, *human_feedback]
         for reaction in row.get("reactions", [])
     ]
+    emojis = {row["emoji"] for row in reactions}
+    feedback_text = "\n".join(row.get("content", "") for row in human_feedback).strip()
     quality = (
-        "bad" if any(emoji in {"👎", "❌"} for emoji in reactions)
-        else "good" if any(emoji in {"👍", "✅"} for emoji in reactions)
+        "bad" if emojis & {"👎", "❌"}
+        else "good" if emojis & {"👍", "✅"}
         else "neutral"
     )
     return {
@@ -181,10 +222,11 @@ def _discord_episode(channel, exchange):
         "request": source.get("content", "")[:4000],
         "agent_chain": [row.get("author", {}).get("username") for row in replies],
         "outcome": "\n".join(row.get("content", "") for row in replies)[:12000],
-        "feedback": {"reactions": reactions},
+        "feedback": {"reactions": reactions, "thread_replies": feedback_text},
         "quality": quality,
         "lesson": (
-            "Human approved this agent response." if quality == "good"
+            feedback_text[:2000] if feedback_text
+            else "Human approved this agent response." if quality == "good"
             else "Human rejected this agent response; inspect before reuse." if quality == "bad"
             else ""
         ),
@@ -347,7 +389,7 @@ def main():
             mark = "🏆" if n == winner else "·"
             lines.append(f"{mark} `{n}`: acc {m['accuracy']} · {m['retrieval_s']}s · safety {m['deal_safety']}%")
         lines.append(f"Promoted **{winner}** — the agents train on it today.")
-        discord_post(token, "\n".join(lines))
+        discord_post(token, "\n".join(lines), f"Nightly RSI — {today}")
 
     # WEEKLY human review (Sundays)
     if datetime.now(timezone.utc).weekday() == 6 and token:
@@ -358,8 +400,12 @@ def main():
         try:
             text, _ = chat("https://opencode.ai/zen/v1", OPENCODE_KEY,
                            "nemotron-3-ultra-free", "Be concise and concrete.", prompt, timeout=240)
-            discord_post(token, "📋 **Weekly RSI synthesis — human review requested**\n" + text
-                         + "\n\nReply here with feedback; it becomes tomorrow night's lessons.")
+            discord_post(
+                token,
+                "📋 **Weekly RSI synthesis — human review requested**\n" + text
+                + "\n\nReply here with feedback; it becomes tomorrow night's lessons.",
+                f"Weekly RSI review — {today}",
+            )
         except Exception as e:
             print(f"[master] weekly synthesis failed: {e}", flush=True)
 

@@ -17,8 +17,12 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 import time
+import uuid
+from difflib import unified_diff
 from pathlib import Path
 
 import requests
@@ -72,7 +76,8 @@ OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENCODE_KEY = os.environ.get("OPENCODE_API_KEY", "")
 COORD = os.environ.get("COORDINATOR_URL", "").rstrip("/")
 DISCORD_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
-DISCORD_CHANNEL = os.environ.get("DISCORD_RSI_CHANNEL_ID", "1527922756480401478")
+DISCORD_GUILD = os.environ.get("DISCORD_SERVER_ID", "1527850934535717055")
+DISCORD_EVAL_CHANNEL = os.environ.get("DISCORD_EVAL_CHANNEL_ID", "")
 DISCORD_INSIGHT_EVERY = int(os.environ.get("DISCORD_INSIGHT_EVERY", "5"))
 
 BASE_SYSTEM = """You are a GPU purchase-decision judge for a buying-assistant team.
@@ -189,7 +194,7 @@ def evaluate(lessons: str):
     }, fails
 
 
-def mutate(champion_lessons, history, fails, hypothesis=""):
+def mutate(champion_lessons, history, fails, hypothesis="", evidence_context=None):
     prompt = f"""You are the researcher in an autoresearch loop optimizing a GPU
 purchase-decision policy. The policy IS the lessons file below (like
 autoresearch's program.md). Objectives: accuracy UP, response length SHORT
@@ -201,6 +206,9 @@ CURRENT CHAMPION LESSONS:
 {champion_lessons or '(empty)'}
 
 RECENT SCOREBOARD (newest last): {json.dumps(history[-4:])}
+
+RECALLED USER EVIDENCE AND PRIOR WINNERS:
+{json.dumps(evidence_context or {}, ensure_ascii=False)[:5000]}
 
 FAILURES FROM LAST EVALUATION:
 {chr(10).join(fails[:12]) or '(none)'}
@@ -240,6 +248,126 @@ Reply with ONLY the new lessons file content."""
     return text.strip()
 
 
+def _sql_quote(value):
+    tag = f"q{uuid.uuid4().hex[:10]}"
+    return f"${tag}${value or ''}${tag}$"
+
+
+def _psql(sql):
+    password = os.environ.get("SUPABASE_DB_PW", "")
+    if not password or not shutil.which("psql"):
+        return ""
+    dsn = (
+        f"host={os.environ.get('SUPABASE_POOLER_HOST', 'aws-0-ca-central-1.pooler.supabase.com')} "
+        "port=5432 dbname=postgres "
+        f"user={os.environ.get('SUPABASE_POOLER_USER', 'postgres.qzegmkzyzalmakoqxezc')} "
+        "sslmode=require"
+    )
+    result = subprocess.run(
+        ["psql", dsn, "-t", "-A", "-v", "ON_ERROR_STOP=1", "-c", sql],
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PGPASSWORD": password},
+    )
+    if result.returncode:
+        print(f"[autoresearch] Supabase skipped: {result.stderr[-220:]}", flush=True)
+        return ""
+    return result.stdout.strip()
+
+
+def recall_evidence():
+    """Ground mutations in recent user signals and actions that already worked."""
+    raw = _psql(
+        """
+        select json_build_object(
+          'episodes', coalesce((
+            select json_agg(row_to_json(e)) from (
+              select episode_id, channel, request, feedback, quality, lesson
+              from public.episodes
+              order by inserted_at desc limit 6
+            ) e
+          ), '[]'::json),
+          'prior_winners', coalesce((
+            select json_agg(row_to_json(w)) from (
+              select action, hypothesis, decision_quality, seconds_per_answer
+              from public.harness_experiments where accepted
+              order by created_at desc limit 5
+            ) w
+          ), '[]'::json),
+          'latest_soul', (
+            select row_to_json(s) from (
+              select agent_name, version, diff_lines, summary
+              from public.agent_soul_latest where agent_name = 'hermes'
+            ) s
+          )
+        );
+        """
+    )
+    try:
+        return json.loads(raw) if raw else {}
+    except json.JSONDecodeError:
+        return {}
+
+
+def _memory_diff_lines(before, after):
+    return sum(
+        line.startswith(("+", "-")) and not line.startswith(("+++", "---"))
+        for line in unified_diff(before.splitlines(), after.splitlines())
+    )
+
+
+def persist_harness_experiment(entry, champion, candidate, evidence, run_id):
+    """Write the five metrics and explicit evidence links to Supabase."""
+    episode_ids = [
+        row["episode_id"] for row in evidence.get("episodes", [])
+        if isinstance(row, dict) and row.get("episode_id")
+    ]
+    preference = next(
+        (
+            row.get("request") or json.dumps(row.get("feedback") or {})
+            for row in evidence.get("episodes", [])
+            if isinstance(row, dict) and (row.get("request") or row.get("feedback"))
+        ),
+        "",
+    )
+    registry_id = f"{run_id}:{entry['version']}:{entry['ts']}"
+    soul = evidence.get("latest_soul") or {}
+    policy_diff_lines = _memory_diff_lines(champion, candidate)
+    entry["registry_id"] = registry_id
+    entry["episodic_diff_lines"] = int(soul.get("diff_lines") or policy_diff_lines)
+    entry["knowledge_regression"] = max(0, -float(entry.get("stability") or 0))
+    episode_array = "array[" + ",".join(_sql_quote(row) for row in episode_ids) + "]::text[]"
+    metadata = json.dumps({
+        "rollouts": entry.get("n", 0),
+        "version": entry["version"],
+        "stability": entry.get("stability", 0),
+        "policy_diff_lines": policy_diff_lines,
+        "soul_version": soul.get("version"),
+        "soul_summary": soul.get("summary"),
+    })
+    _psql(
+        "insert into public.harness_experiments "
+        "(experiment_id,action,hypothesis,decision_quality,seconds_per_answer,"
+        "forbidden_platform_risk,memory_diff_lines,knowledge_regression,accepted,"
+        "rolled_back,source_box,evidence_episode_ids,user_preference,test_method,metadata) values ("
+        f"{_sql_quote(registry_id)},'mutate_policy',{_sql_quote(entry.get('hypothesis'))},"
+        f"{float(entry.get('accuracy') or 0)},{float(entry.get('retrieval_s') or 0)},"
+        f"{max(0, 100 - float(entry.get('deal_safety') or 100))},"
+        f"{entry['episodic_diff_lines']},{entry['knowledge_regression']},"
+        f"{'true' if entry.get('accepted') else 'false'},false,'cursor-karpathy',"
+        f"{episode_array},{_sql_quote(preference[:500])},"
+        f"{_sql_quote('Verifiers frozen golden set + rubric/LLM judge; same cases as champion')},"
+        f"{_sql_quote(metadata)}::jsonb) "
+        "on conflict (experiment_id) do update set "
+        "decision_quality=excluded.decision_quality,seconds_per_answer=excluded.seconds_per_answer,"
+        "forbidden_platform_risk=excluded.forbidden_platform_risk,"
+        "memory_diff_lines=excluded.memory_diff_lines,"
+        "knowledge_regression=excluded.knowledge_regression,accepted=excluded.accepted,"
+        "evidence_episode_ids=excluded.evidence_episode_ids,user_preference=excluded.user_preference,"
+        "test_method=excluded.test_method,metadata=excluded.metadata;"
+    )
+
+
 def snapshot(entry):
     hist = json.loads(SNAPSHOTS.read_text()) if SNAPSHOTS.exists() else []
     hist.append(entry)
@@ -274,18 +402,46 @@ def post_discord_insight(entry, history):
     verdict = "PROMOTED" if entry.get("accepted") else "checkpoint"
     content = (
         f"🔬 **AutoResearch {verdict} · {entry.get('version')}**\n"
-        f"Accuracy **{entry.get('accuracy', 0):.4f}** ({delta:+.4f} from baseline) · "
-        f"retrieval **{entry.get('retrieval_s', 0):.2f}s** · "
-        f"safety **{entry.get('deal_safety', 0):.1f}%**\n"
+        f"Decision quality **{entry.get('accuracy', 0):.4f}** ({delta:+.4f}) · "
+        f"seconds/answer **{entry.get('retrieval_s', 0):.2f}s**\n"
+        f"Forbidden-platform risk **{100 - entry.get('deal_safety', 100):.1f}%** · "
+        f"memory diff **{entry.get('episodic_diff_lines', 0)} lines** · "
+        f"knowledge regression **{entry.get('knowledge_regression', 0):.4f}**\n"
         f"Hypothesis: {entry.get('hypothesis') or 'baseline policy check'}"
     )
     try:
-        response = requests.post(
-            f"https://discord.com/api/v10/channels/{DISCORD_CHANNEL}/messages",
-            headers={"Authorization": f"Bot {DISCORD_TOKEN}"},
-            json={"content": content[:1900]},
+        headers = {"Authorization": f"Bot {DISCORD_TOKEN}"}
+        rows = requests.get(
+            f"https://discord.com/api/v10/guilds/{DISCORD_GUILD}/channels",
+            headers=headers,
             timeout=15,
+        ).json()
+        target = next(
+            (row for row in rows if row.get("id") == DISCORD_EVAL_CHANNEL),
+            next(
+                (row for row in rows if row.get("name") == "eval"),
+                next((row for row in rows if row.get("name") == "daily"), None),
+            ),
         )
+        if not target:
+            return
+        if target.get("type") == 15:
+            response = requests.post(
+                f"https://discord.com/api/v10/channels/{target['id']}/threads",
+                headers=headers,
+                json={
+                    "name": f"RSI eval — {entry.get('version', 'experiment')}"[:90],
+                    "message": {"content": content[:1900]},
+                },
+                timeout=15,
+            )
+        else:
+            response = requests.post(
+                f"https://discord.com/api/v10/channels/{target['id']}/messages",
+                headers=headers,
+                json={"content": content[:1900]},
+                timeout=15,
+            )
         response.raise_for_status()
     except requests.RequestException as error:
         print(f"[autoresearch] Discord insight skipped: {error}", flush=True)
@@ -445,8 +601,15 @@ def policy_cycle(run_dir, workspace_dir, exp, history, champ_metrics, fails):
     start_experiment(workspace_dir, exp_id, desc)
 
     champion = read_main_file(workspace_dir, TARGET_FILE)
+    evidence = recall_evidence()
     try:
-        candidate = mutate(champion, history, fails, hypothesis=exp.get("hypothesis", ""))
+        candidate = mutate(
+            champion,
+            history,
+            fails,
+            hypothesis=exp.get("hypothesis", ""),
+            evidence_context=evidence,
+        )
     except Exception as e:
         discard_experiment(workspace_dir, exp_id, desc)
         update_experiment(run_dir, exp_id, "failed", reason=str(e))
@@ -468,6 +631,13 @@ def policy_cycle(run_dir, workspace_dir, exp, history, champ_metrics, fails):
         "hypothesis": exp.get("hypothesis", ""),
         **cand_metrics,
     }
+    persist_harness_experiment(
+        entry,
+        champion,
+        candidate,
+        evidence,
+        Path(run_dir).name,
+    )
     history = snapshot(entry)
     print(f"[autoresearch] exp {exp_id}: {json.dumps(entry)}", flush=True)
 

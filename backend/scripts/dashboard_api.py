@@ -48,7 +48,10 @@ IMPROVEMENT_RUNS = [
 
 
 def load_env():
-    for raw in (ROOT / ".env").read_text().splitlines():
+    env_file = Path(os.getenv("AITX_ENV_FILE", ROOT / ".env"))
+    if not env_file.exists():
+        return
+    for raw in env_file.read_text().splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
@@ -61,13 +64,13 @@ def database():
     if database_url := os.getenv("DATABASE_URL"):
         return psycopg2.connect(database_url, sslmode="require", connect_timeout=8)
     pooler = os.getenv("SUPABASE_POOLER_URL")
-    if not pooler:
-        pooler = (ROOT / "supabase/.temp/pooler-url").read_text().strip()
-    endpoint = pooler.rsplit("@", 1)[-1].split("/", 1)[0]
-    host, port = endpoint.rsplit(":", 1)
-    project_ref = os.getenv("SUPABASE_PROJECT_REF")
-    if not project_ref:
-        project_ref = (ROOT / "supabase/.temp/project-ref").read_text().strip()
+    if pooler:
+        endpoint = pooler.rsplit("@", 1)[-1].split("/", 1)[0]
+        host, port = endpoint.rsplit(":", 1)
+    else:
+        host = os.getenv("SUPABASE_POOLER_HOST", "aws-0-ca-central-1.pooler.supabase.com")
+        port = os.getenv("SUPABASE_POOLER_PORT", "5432")
+    project_ref = os.getenv("SUPABASE_PROJECT_REF", "qzegmkzyzalmakoqxezc")
     return psycopg2.connect(
         host=host,
         port=int(port),
@@ -280,7 +283,7 @@ def discord_rsi_messages():
 
 
 def coordinator_json(path):
-    response = requests.get(f"{COORDINATOR_URL}{path}", timeout=8)
+    response = requests.get(f"{COORDINATOR_URL}{path}", timeout=4)
     response.raise_for_status()
     return response.json()
 
@@ -315,59 +318,151 @@ def episodic_evidence(limit=16):
         ]
 
 
+def harness_experiments(limit=200):
+    """Measured harness mutations and their explicit evidence links."""
+    with database() as connection, connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(
+            """
+            select experiment_id, action, hypothesis, decision_quality,
+                   seconds_per_answer, forbidden_platform_risk, memory_diff_lines,
+                   knowledge_regression, accepted, rolled_back, source_box,
+                   evidence_episode_ids, research_urls, user_preference,
+                   test_method, metadata, created_at
+            from public.harness_experiments
+            order by created_at asc
+            limit %s
+            """,
+            (limit,),
+        )
+        return [
+            {key: json_value(value) for key, value in row.items()}
+            for row in cursor.fetchall()
+        ]
+
+
+def soul_history(limit=50):
+    """Versioned Hermes preferences; diff_lines is leaderboard metric four."""
+    with database() as connection, connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(
+            """
+            select agent_name, version, diff_lines, summary, updated_at
+            from public.agent_soul
+            where agent_name = 'hermes'
+            order by version asc
+            limit %s
+            """,
+            (limit,),
+        )
+        return [
+            {key: json_value(value) for key, value in row.items()}
+            for row in cursor.fetchall()
+        ]
+
+
 def _feedback_summary(episode):
     feedback = episode.get("feedback") or {}
     if isinstance(feedback, dict):
         reactions = feedback.get("reactions") or []
         if reactions:
             return ", ".join(
-                f"{row.get('emoji', 'reaction')} ×{row.get('count', 1)}"
+                (
+                    f"{row.get('emoji', 'reaction')} ×{row.get('count', 1)}"
+                    if isinstance(row, dict) else str(row)
+                )
                 for row in reactions[:3]
-                if isinstance(row, dict)
             )
     return ""
 
 
-def _experiment_payload(rows, source, episodes=None):
+def _registry_rows(rows):
+    return [
+        {
+            "registry_id": row["experiment_id"],
+            "source": "supabase-harness-registry",
+            "ts": row["created_at"],
+            "version": row["experiment_id"],
+            "role": "champion" if row["accepted"] else "candidate",
+            "accepted": row["accepted"],
+            "rolled_back": row["rolled_back"],
+            "stability": -float(row.get("knowledge_regression") or 0),
+            "hypothesis": row.get("hypothesis") or row["action"].replace("_", " "),
+            "accuracy": float(row.get("decision_quality") or 0),
+            "retrieval_s": float(row.get("seconds_per_answer") or 0),
+            "deal_safety": 100 - float(row.get("forbidden_platform_risk") or 0),
+            "episodic_diff_lines": int(row.get("memory_diff_lines") or 0),
+            "knowledge_regression": float(row.get("knowledge_regression") or 0),
+            "n": int((row.get("metadata") or {}).get("rollouts") or 0),
+        }
+        for row in rows
+    ]
+
+
+def _experiment_payload(rows, source, episodes=None, registry=None, soul=None):
+    registry = registry or []
+    latest_soul = (soul or [None])[-1]
+    registry_by_id = {row["experiment_id"]: row for row in registry}
+    linked_ids = {row.get("registry_id") for row in rows}
+    rows = [*rows, *[
+        row for row in _registry_rows(registry)
+        if row["registry_id"] not in linked_ids
+    ]]
+    rows.sort(key=lambda row: str(row.get("ts") or ""))
     clean = [row for row in rows if isinstance(row, dict) and isinstance(row.get("accuracy"), (int, float))]
-    episodes = list(reversed(episodes or []))
-    episode_offset = max(0, len(clean) - len(episodes))
+    episodes_by_id = {row["episode_id"]: row for row in episodes or []}
     experiments = []
     for index, row in enumerate(clean, 1):
         safety = float(row.get("deal_safety", 100))
         stability = float(row.get("stability", 0) or 0)
-        episode = episodes[index - episode_offset - 1] if index > episode_offset else None
-        lesson = (episode or {}).get("lesson") or ""
-        memory_lines = len([line for line in lesson.splitlines() if line.strip()])
+        recorded = registry_by_id.get(row.get("registry_id"))
+        evidence_ids = (recorded or {}).get("evidence_episode_ids") or []
+        linked_episodes = [episodes_by_id[row_id] for row_id in evidence_ids if row_id in episodes_by_id]
+        episode = linked_episodes[0] if linked_episodes else None
+        is_latest = index == len(clean)
+        memory_lines = int(
+            latest_soul.get("diff_lines")
+            if is_latest and latest_soul
+            else (recorded or {}).get("memory_diff_lines")
+                 or row.get("episodic_diff_lines")
+                 or 0
+        )
         description = row.get("hypothesis") or row.get("version", f"experiment {index}")
-        preference = ""
-        if episode:
+        preference = (recorded or {}).get("user_preference") or ""
+        if not preference and episode:
             preference = _feedback_summary(episode) or episode.get("request") or episode.get("outcome") or ""
+        research_urls = (recorded or {}).get("research_urls") or []
         experiments.append({
             **row,
             "experiment": index,
             "kept": bool(row.get("accepted") or row.get("role") == "champion"),
             "price_regression": round(max(0, 100 - safety), 3),
             "episodic_diff_lines": memory_lines,
-            "knowledge_regression": round(max(0, -stability), 4),
+            "knowledge_regression": round(
+                float((recorded or {}).get("knowledge_regression") or max(0, -stability)),
+                4,
+            ),
             "description": description,
             "evidence": {
-                "source": "Supabase episodic trial" if episode else "Online retrieval research",
+                "source": "Supabase harness registry" if recorded else "EC2 experiment record",
                 "source_detail": (
-                    f"{episode.get('channel') or '#daily'} · {episode.get('quality') or 'ungraded'}"
-                    if episode else description
+                    f"{recorded['action'].replace('_', ' ')} · {recorded.get('source_box') or 'orchestrator'}"
+                    if recorded else "Legacy run · no explicit evidence link"
                 ),
                 "improvement": description,
-                "preference": preference[:220] or "No explicit preference attached to this trial.",
+                "preference": preference[:220] or "No linked Discord preference was recorded for this run.",
                 "memory_change": (
+                    f"Hermes SOUL v{latest_soul['version']} · {memory_lines} diff line"
+                    f"{'s' if memory_lines != 1 else ''} · {latest_soul.get('summary') or 'preference update'}"
+                    if is_latest and latest_soul else
                     f"{memory_lines} episodic memory line{'s' if memory_lines != 1 else ''} proposed"
-                    if episode else "No episodic memory patch attached"
+                    if memory_lines else "No episodic memory patch attached"
                 ),
                 "tested_by": (
-                    f"Verifiers golden set · {int(row.get('n') or 0)} judged rollouts · "
-                    f"{safety:.1f}% deal safety"
+                    (recorded or {}).get("test_method")
+                    or f"Verifiers golden set · {int(row.get('n') or 0)} judged rollouts · "
+                       f"{safety:.1f}% deal safety"
                 ),
-                "episode_id": (episode or {}).get("episode_id"),
+                "episode_ids": evidence_ids,
+                "research_urls": research_urls,
             },
         })
     if not experiments:
@@ -405,20 +500,39 @@ def autoresearch_experiments():
     except Exception:
         episodes = []
     try:
+        registry = harness_experiments()
+    except Exception:
+        registry = []
+    try:
+        soul = soul_history()
+    except Exception:
+        soul = []
+    try:
         return _experiment_payload(
             measured_radar(),
-            "live EC2 loop via Railway + Supabase evidence",
+            "live EC2/Railway loop + Supabase harness registry",
             episodes,
+            registry,
+            soul,
         )
     except Exception:
         pass
     if AUTORESEARCH_EXPERIMENTS.exists():
-        return json.loads(AUTORESEARCH_EXPERIMENTS.read_text())
+        payload = json.loads(AUTORESEARCH_EXPERIMENTS.read_text())
+        return _experiment_payload(
+            payload.get("experiments", []),
+            "committed experiment snapshot + live Supabase harness registry",
+            episodes,
+            registry,
+            soul,
+        )
     if RADAR_SNAPSHOTS.exists():
         return _experiment_payload(
             json.loads(RADAR_SNAPSHOTS.read_text()),
             "committed radar snapshot",
             episodes,
+            registry,
+            soul,
         )
     raise FileNotFoundError("no autoresearch experiment history")
 
@@ -462,7 +576,7 @@ def try_supabase_rsi_runs():
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=str(ROOT / "dashboard"), **kwargs)
+        super().__init__(*args, directory=str(ROOT / "frontend"), **kwargs)
 
     def send_json(self, payload, status=200):
         body = json.dumps(payload, ensure_ascii=False).encode()
@@ -556,6 +670,8 @@ class Handler(SimpleHTTPRequestHandler):
                     "status": "live",
                     "database": "hosted Supabase",
                     "episodes": episodic_evidence(),
+                    "experiments": harness_experiments(),
+                    "soul": soul_history(),
                 })
             except Exception as error:
                 self.send_json({"status": "unavailable", "error": str(error), "episodes": []}, 503)

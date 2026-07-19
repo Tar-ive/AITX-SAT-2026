@@ -5,8 +5,8 @@ const catalog={
   macbook:{label:"MacBook",target:699,icon:"fa-laptop"},
   ram:{label:"DDR5 RAM",target:199,icon:"fa-memory"}
 };
-const state={category:"gpu",market:null,deals:[],dealFilter:"all",improvement:[],operations:null,experiments:null,limit:3};
-let marketChart,improvementChart,toastTimer;
+const state={category:"gpu",market:null,deals:[],dealFilter:"all",experiments:null,limit:3};
+let marketChart,toastTimer;
 const karpathyCharts={};
 
 const money=(n,currency="USD")=>new Intl.NumberFormat("en-US",{style:"currency",currency,maximumFractionDigits:n<1000?2:0}).format(n);
@@ -35,10 +35,7 @@ function showPage(id){
   window.scrollTo({top:0,behavior:"smooth"});
   history.replaceState(null,"",`#${id}`);
   if(id==="dashboard")setTimeout(()=>marketChart?.resize(),0);
-  if(id==="leaderboard")setTimeout(()=>{
-    improvementChart?.resize();
-    Object.values(karpathyCharts).forEach(c=>c?.resize());
-  },0);
+  if(id==="leaderboard")setTimeout(()=>Object.values(karpathyCharts).forEach(c=>c?.resize()),0);
 }
 
 function renderListingRows(rows){
@@ -135,68 +132,6 @@ async function loadDeals(){
     state.deals=[];
     renderDeals();
   }
-}
-
-const metricCell=(value,ci,format,trend)=>value==null
-  ?'<td class="unavailable"><b>—</b><small>not measured</small></td>'
-  :`<td class="${trend}"><b>${format(value)}</b><small>${ci==null?"":`±${format(ci)}`}</small></td>`;
-function trendClass(value,baseline,higherIsBetter){
-  if(value==null||baseline==null)return"same";
-  const delta=value-baseline;
-  if(Math.abs(delta)<.0001)return"same";
-  return(higherIsBetter?delta>0:delta<0)?"better":"worse";
-}
-
-function renderImprovement(payload){
-  state.improvement=payload.runs;
-  const runs=payload.runs, baseline=runs.find(run=>run.baseline)||runs.at(-1);
-  const candidates=[...payload.candidates].sort((a,b)=>a.step-b.step);
-  $("#improvement-evidence").textContent=payload.evidence_status==="illustrative"?"Prototype evaluation history":`${candidates.length} measured runs`;
-  $("#benchmark-note").textContent=`95% confidence intervals · ${payload.evidence_status}`;
-  $("#improvement-table").innerHTML=runs.map((run,index)=>{
-    const movement=index===0?'<span class="movement up">↑ 1</span>':index===1?'<span class="movement down">↓ 1</span>':'<span class="movement">–</span>';
-    return`<tr class="${run.current?"champion":""}">
-      <td><span class="rank">${index+1}</span>${movement}</td>
-      <td><strong>${esc(run.version)}${run.current?" (current)":""}</strong><small>${esc(run.label)}</small></td>
-      ${metricCell(run.decision_quality,run.decision_ci,v=>v.toFixed(3),trendClass(run.decision_quality,baseline.decision_quality,true))}
-      ${metricCell(run.landed_price_error,run.landed_ci,v=>`${v.toFixed(1)}%`,trendClass(run.landed_price_error,baseline.landed_price_error,false))}
-      ${metricCell(run.latency,run.latency_ci,v=>`${v.toFixed(2)}s`,trendClass(run.latency,baseline.latency,false))}
-      ${metricCell(run.valid_url_rate,run.url_ci,v=>`${v.toFixed(1)}%`,trendClass(run.valid_url_rate,baseline.valid_url_rate,true))}
-      ${metricCell(run.unsupported_claims,run.claims_ci,v=>`${v.toFixed(2)}%`,trendClass(run.unsupported_claims,baseline.unsupported_claims,false))}
-      ${metricCell(run.forecast_regret,run.regret_ci,v=>money(v),trendClass(run.forecast_regret,baseline.forecast_regret,false))}
-    </tr>`;
-  }).join("");
-
-  const current=runs.find(run=>run.current)||runs[0], latest=candidates.at(-1);
-  if(candidates.length===1){
-    $("#improvement-summary").innerHTML=`
-      <p class="eyebrow">Measured baseline established</p>
-      <strong>${current.decision_quality.toFixed(3)}</strong><span>decision quality · ±${current.decision_ci.toFixed(3)}</span>
-      <dl><div><dt>Rollouts</dt><dd>${current.sample_size}</dd></div><div><dt>Median latency</dt><dd>${current.latency.toFixed(2)}s</dd></div><div><dt>Teacher</dt><dd>${esc(current.teacher_model)}</dd></div></dl>
-      <small>Memory is off. Run the first lessons-informed challenger to begin the trend.</small>`;
-  }else{
-    const decisionGain=(latest.decision_quality-current.decision_quality)/current.decision_quality*100;
-    $("#improvement-summary").innerHTML=`
-      <p class="eyebrow">${latest.accepted?"Promoted":"Challenger held"}</p>
-      <strong>${decisionGain>=0?"+":""}${decisionGain.toFixed(1)}%</strong><span>decision quality</span>
-      <dl><div><dt>Candidate</dt><dd>${esc(latest.version)}</dd></div><div><dt>Champion</dt><dd>${esc(current.version)}</dd></div><div><dt>Decision</dt><dd>${latest.accepted?"Promoted":"No change"}</dd></div></dl>
-      <small>${esc(latest.policy_change)}</small>`;
-  }
-  renderImprovementChart(runs,payload.candidates);
-}
-
-function renderImprovementChart(runs,candidates=[]){
-  const ordered=[...candidates].sort((a,b)=>a.step-b.step);
-  let champion=null;
-  const championLine=ordered.map(candidate=>{if(candidate.accepted)champion=candidate.decision_quality;return champion});
-  improvementChart?.destroy();
-  improvementChart=new Chart($("#improvement-chart"),{type:"line",data:{labels:ordered.map(run=>run.version),datasets:[
-    {label:"Champion",data:championLine,stepped:"after",borderColor:"#e84c6a",backgroundColor:"#e84c6a",pointRadius:4,borderWidth:3},
-    {label:"Evaluated candidate",data:ordered.map(run=>run.decision_quality),showLine:false,pointBackgroundColor:ordered.map(run=>run.accepted?"#28754c":"#aaa69b"),pointBorderColor:"#fffdf7",pointRadius:6}
-  ]},options:{animation:false,responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:14,font:{family:"DM Sans",size:11}}}},scales:{
-    x:{grid:{display:false},ticks:{font:{family:"DM Mono",size:10}}},
-    y:{suggestedMin:.45,suggestedMax:.80,title:{display:true,text:"Decision quality"},ticks:{font:{family:"DM Mono",size:9}},grid:{color:"#ded8cc"}}
-  }}});
 }
 
 const metricMeta={
@@ -349,13 +284,6 @@ function renderKarpathyChart(canvasId, experiments, metric, opts={}){
   });
 }
 
-function fmtDelta(start, now, digits=3, invert=false){
-  const d=now-start;
-  const good=invert?d<0:d>0;
-  const arrow=d>0?"▲":d<0?"▼":"–";
-  return `${arrow} ${Math.abs(d).toFixed(digits)}`;
-}
-
 function renderExperiments(payload){
   state.experiments=payload;
   const exps=(payload.experiments||[]).map(exp=>({
@@ -364,7 +292,7 @@ function renderExperiments(payload){
     knowledge_regression:Number(exp.knowledge_regression??exp.agent_regression??0)
   }));
   const s=payload.summary||{};
-  const sourceLabel=payload.seed==="live"?"live":payload.source||"offline snapshot";
+  const sourceLabel=payload.source||"offline snapshot";
   $("#improvement-evidence").textContent=`${s.experiments||exps.length} experiments · ${s.kept||0} kept · ${sourceLabel}`;
   $("#seed-value").textContent=sourceLabel;
   $("#seed-exp-count").textContent=String(s.experiments??exps.length);
@@ -377,11 +305,11 @@ function renderExperiments(payload){
   $("#memory-delta").textContent=`${Number(s.episodic_diff_now??exps.at(-1)?.episodic_diff_lines??0).toFixed(0)} lines`;
   $("#knowledge-delta").textContent=`${Number(s.knowledge_regression_start??0).toFixed(3)} → ${Number(s.knowledge_regression_now??exps.at(-1)?.knowledge_regression??0).toFixed(3)}`;
 
-  renderKarpathyChart("chart-accuracy", exps, "accuracy", {yLabel:"Accuracy (↑ better)"});
-  renderKarpathyChart("chart-retrieval", exps, "retrieval_s", {yLabel:"Seconds (↓ better)", lowerIsBetter:false});
-  renderKarpathyChart("chart-price", exps, "price_regression", {yLabel:"Price regression (↓ better)"});
-  renderKarpathyChart("chart-memory", exps, "episodic_diff_lines", {yLabel:"Changed lines"});
-  renderKarpathyChart("chart-knowledge", exps, "knowledge_regression", {yLabel:"Regression (↓ better)",annotate:true});
+  renderKarpathyChart("chart-accuracy", exps, "accuracy", {yLabel:"Decision quality"});
+  renderKarpathyChart("chart-retrieval", exps, "retrieval_s", {yLabel:"Seconds per answer"});
+  renderKarpathyChart("chart-price", exps, "price_regression", {yLabel:"Forbidden-platform risk"});
+  renderKarpathyChart("chart-memory", exps, "episodic_diff_lines", {yLabel:"Hermes memory diff lines"});
+  renderKarpathyChart("chart-knowledge", exps, "knowledge_regression", {yLabel:"Agent knowledge regression",annotate:true});
   renderResearchDetail(exps.at(-1),"accuracy",exps.at(-2));
 }
 
@@ -400,38 +328,6 @@ async function loadExperiments(){
   }catch(error){
     $("#improvement-evidence").textContent="Experiment history unavailable";
     $("#seed-note").textContent=error.message;
-  }
-}
-
-async function loadImprovement(){
-  try{renderImprovement(await api("/api/improvement"))}
-  catch(error){
-    $("#improvement-table").innerHTML=`<tr><td colspan="8">Evaluation API unavailable: ${esc(error.message)}</td></tr>`;
-    $("#improvement-summary").innerHTML="<strong>No evaluation history</strong><p>Start the dashboard API and refresh.</p>";
-  }
-}
-
-function renderOperations(payload){
-  state.operations=payload;
-  const {lessons,latest_eval:latest}=payload;
-  $("#lessons-status").innerHTML=lessons.status==="synced"&&lessons.lesson_count>0
-    ?`<i class="fa-solid fa-circle-check"></i> ${lessons.lesson_count} lessons synced · ${esc(relativeTime(lessons.updated_at))}`
-    :lessons.status==="synced"
-    ?'<i class="fa-solid fa-circle-check"></i> No cloud lesson promotion yet'
-    :'<i class="fa-solid fa-cloud-arrow-down"></i> Lessons file awaiting cloud sandbox sync';
-  $("#fresh-run-strip").innerHTML=latest?`
-    <span><small>Latest measured run</small><strong>${esc(latest.model.split("/").at(-1))}</strong></span>
-    <span><small>Decision quality</small><strong>${latest.avg_reward.toFixed(3)}</strong></span>
-    <span><small>Valid JSON</small><strong>${latest.avg_metrics.valid_json_rate_pct.toFixed(1)}%</strong></span>
-    <span><small>Rollouts</small><strong>${latest.rollout_count}</strong></span>
-    <span><small>Evaluation time</small><strong>${latest.eval_seconds.toFixed(1)}s</strong></span>
-  `:'<span><small>Latest measured run</small><strong>Awaiting first evaluation</strong></span>';
-}
-
-async function loadOperations(){
-  try{renderOperations(await api("/api/rsi-operations"))}
-  catch(error){
-    $("#lessons-status").innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> RSI operations unavailable';
   }
 }
 

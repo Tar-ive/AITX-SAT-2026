@@ -27,19 +27,19 @@ most of the substrate.** Here's exactly where each step stands.
 | # | Step | Status | What exists | Gap to close |
 |---|------|--------|-------------|--------------|
 | 1 | Karpathy autoresearch on EC2, rollouts in git branches | ✅ **done** | Cursor loop on the t3.small box; systemd; experiments as git branches | — |
-| 2 | Live firehose from #daily (prices, 👍, thread prefs) | 🟡 partial | nightly episodic distillation of transcripts | reactions + thread-reply preferences not yet extracted as signal; it's nightly, not live |
-| 3 | Orchestrator evaluates current episodic memory | 🟡 partial | nightly tournament treats episodic memory as one strategy | orchestrator doesn't *inspect* the memory diff explicitly |
+| 2 | Live firehose from #daily (prices, 👍, thread prefs) | 🟡 partial | each cycle polls messages, active threads, replies, and reactions into Supabase episodes | Discord Gateway streaming remains future work |
+| 3 | Orchestrator evaluates current episodic memory | ✅ done | Hermes `SOUL.md` is versioned in `agent_soul`; the loop recalls its exact diff | — |
 | 4 | Reads eval metrics | ✅ done | loop scores every candidate | — |
-| 5 | Experiments conditioned on Supabase "what worked" | 🟡 partial | `episodes`, `rsi_runs` tables exist | experiments don't yet read prior-winner history to bias search |
-| 6 | **5 leaderboard metrics** | 🟡 4 of 5 | decision-quality, seconds/answer, forbidden-platform risk, knowledge-regression | **missing: Hermes episodic-memory diff lines** (implemented below) |
-| 7 | Action space (Supabase-gated, OpenShell-gated, simulate ideas) | 🔴 mostly missing | OpenShell policies gate egress | the *action registry* (distill / update-memory / hub-search / swap-component) isn't formalized — this is the Self-Harness core |
+| 5 | Experiments conditioned on Supabase "what worked" | ✅ done | each mutation recalls recent episodes and accepted `harness_experiments` | richer strategy weighting remains future work |
+| 6 | **5 leaderboard metrics** | ✅ done | decision quality, seconds/answer, forbidden-platform risk, memory diff lines, knowledge regression | — |
+| 7 | Action space (Supabase-gated, OpenShell-gated, simulate ideas) | 🟡 partial | action registry + OpenShell policy exist | hub-search, distillation, and component swaps still need executors |
 | 8 | Evaluate with verifiers + LLM-judge on golden set | ✅ mostly | `gpu_deal_judge` env, rubric, golden dataset | rubric is rule-based; an LLM-judge reward func is a small add |
 | 9 | Promote with quick rollback | ✅ done | statistical gate + auto-rollback (`auto_promote.py`) | extend from policy to harness-components |
-| 10 | Notify in #eval, human-digestible | 🟡 partial | posts to #daily | dedicated #eval channel + digest format (implemented below) |
+| 10 | Notify in #eval, human-digestible | ✅ done | every digest opens a titled post in the `#eval` forum | — |
 | 11 | Weekly human review by agent | ✅ done | Sunday synthesis in `nightly_master_cycle.py` | — |
 
-**Headline: ~6 of 11 done, 4 partial, 1 (the harness action-space) is the real
-frontier.** We are much closer than a from-scratch build.
+**Headline: 8 of 11 are operational; the remaining frontier is executing the
+riskier harness actions safely.**
 
 ## The action space (step 7) — the Self-Harness core, designed
 
@@ -60,24 +60,24 @@ it needs, and (c) it passes the regression test on the frozen golden set before
 promotion. This is exactly Self-Harness's "no-regression" guarantee plus DGM's
 "empirical validation."
 
-## What I'm implementing now (the feasible, high-value gaps)
+## Implemented substrate
 
-1. **5th metric — episodic-memory diff lines** (completes your named 5). Every
-   evaluation records how many lines the episodic memory changed vs. the
-   champion: a direct measure of *how much the agent learned*. Added to the
-   loop and the radar (5 axes).
-2. **#eval channel digest** (step 10). A dedicated, human-readable eval post:
+1. **5th metric — episodic-memory diff lines.** `soul_sync.py` versions Hermes
+   `SOUL.md` in Supabase; each evaluation records the latest exact diff as a
+   direct measure of *how much the agent learned*.
+2. **#eval forum digest** (step 10). A dedicated, human-readable eval post:
    the 5 metrics, before→after, the winning action, and a rollback button-style
    note — separate from the noisy #daily.
-3. **Action registry scaffold + Supabase `harness_experiments` table** (step 7):
+3. **Action registry + Supabase `harness_experiments` table** (step 7):
    records every attempted action, its metric deltas, and accept/reject, so
    future experiments read "what worked" (step 5) and the gate can forbid
    known-regressive actions.
 
 ## What stays research/roadmap (honest)
 
-- **Live firehose** (step 2): moving from nightly to streaming needs a Discord
-  gateway listener on reactions/threads — feasible but a separate build.
+- **Gateway streaming** (step 2): current polling captures messages, active
+  threads, replies, and reactions; true push streaming still needs a persistent
+  Discord Gateway listener.
 - **Hub-search & component-swap as live actions** (step 7): these are the
   Self-Harness/DGM frontier; we scaffold the registry now and wire the riskier
   actions behind human approval.

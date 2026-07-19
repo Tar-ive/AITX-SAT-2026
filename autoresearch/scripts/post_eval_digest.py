@@ -95,10 +95,10 @@ def main():
             f"Latest action: `{f[0]}` · {'🏆 PROMOTED' if f[6] == 't' else '↩️ ROLLED BACK' if f[7] == 't' else 'candidate (held)'}",
             "",
             f"• **Decision quality**: {f[1]}{arrow(f[1], c[0])}",
-            f"• **Seconds / answer**: {f[2]}{arrow(f[2], c[1], lower_better=True)}",
+            f"• **Seconds per answer**: {f[2]}{arrow(f[2], c[1], lower_better=True)}",
             f"• **Forbidden-platform risk**: {f[3]}{arrow(f[3], c[2], lower_better=True)}",
-            f"• **Episodic-memory diff lines**: {f[4]}  _(how much the agent learned)_",
-            f"• **Knowledge regression**: {f[5]}  _(≥0 = no regression)_",
+            f"• **Hermes episodic memory diff lines**: {f[4]}  _(how much the agent learned)_",
+            f"• **Agent knowledge regression**: {f[5]}  _(≥0 = no regression)_",
             "",
             "Promotion is automatic on a defensible, regression-free gain; "
             "rollback is automatic on a >2pt drop. Humans monitor here.",
