@@ -1,5 +1,12 @@
 # autoresearch
 
+> Daily Discord deal workflow: see [workflow/README.md](workflow/README.md) for
+> the reproducible command-to-cron demo, audit ledger, and recording command.
+>
+> Demo video: [daily Discord deal workflow (MP4)](frontend/media/daily-deals-workflow-demo.mp4)
+>
+> Live Discord/Sage demo: [command-to-#daily result (MP4)](frontend/media/daily-discord-sage-live-demo.mp4)
+
 ![teaser](autoresearch/progress.png)
 
 *One day, frontier AI research used to be done by meat computers in between eating, sleeping, having other fun, and synchronizing once in a while using sound wave interconnect in the ritual of "group meeting". That era is long gone. Research is now entirely the domain of autonomous swarms of AI agents running across compute cluster megastructures in the skies... This repo is the story of how it all began. —@karpathy, March 2026*

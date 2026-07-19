@@ -22,6 +22,15 @@ Only query these shared marketplace tables:
 - `public.listings`
 - `public.price_observations`
 - `public.sync_runs`
+- `public.reviews_feedback` — aggregated Discord reactions, feedback-button
+  votes, and human replies/threads. Use it to learn current preferences; do
+  not expose author IDs or raw feedback text in user-facing answers.
+- `public.agent_shared_memory` — sanitised canonical user inputs shared by
+  NemoHermes and NemoClaw. One Discord message is stored once using its message
+  ID as the deduplication key; use this for internal context only.
+- `public.agent_shared_memory` — one sanitised canonical user-input record per
+  Discord message, shared by NemoHermes and NemoClaw. Use it as short-lived
+  context, never expose raw records, and respect `#no-memory` opt-out.
 
 Do not query `public.watchlists`, which can contain user-specific information.
 Keep queries focused, use filters and `LIMIT`, and never attempt INSERT, UPDATE,

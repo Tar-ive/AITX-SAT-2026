@@ -1,0 +1,5 @@
+[
+  {"title": "NVIDIA GeForce RTX 5070 Ti 16GB", "store": "Newegg", "url": "https://example.test/newegg/5070ti", "price": 749.99, "shipping": 0, "condition": "new", "availability": "in stock", "fulfillment": "online", "baseline_price": 899.99},
+  {"title": "NVIDIA GeForce RTX 5070 Ti 16GB", "store": "Micro Center", "url": "https://example.test/microcenter/5070ti", "price": 699.99, "shipping": 0, "condition": "new", "availability": "local pickup", "fulfillment": "offline", "baseline_price": 899.99},
+  {"title": "32GB DDR5-6000 kit", "store": "Best Buy", "url": "https://example.test/bestbuy/ddr5", "price": 89.99, "shipping": 0, "condition": "new", "availability": "ships", "fulfillment": "online", "baseline_price": 119.99}
+]

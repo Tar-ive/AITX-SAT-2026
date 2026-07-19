@@ -23,6 +23,11 @@ NVIDIA_API_KEY = config.get("NVIDIA_API_KEY")
 
 # API Server URL (Railway Deployed URL)
 API_SERVER_URL = "https://nemoclaw-coordinator-api-production.up.railway.app"
+SHARED_MEMORY_URL = os.environ.get("SHARED_MEMORY_URL", "http://host.openshell.internal:8001/memory/recent")
+# NemoHermes is the sole Discord-facing assistant.  NemoClaw uses the shared
+# context internally and must never create a duplicate user-facing response.
+PASSIVE_MEMORY_ONLY = os.environ.get("NEMOCLAW_PASSIVE_MEMORY_ONLY", "1") == "1"
+SHARED_MEMORY_PROXY_URL = os.environ.get("SHARED_MEMORY_PROXY_URL", "http://host.openshell.internal:8001")
 
 # Whitelisted Specialist Bot IDs (Verifiers to allow bot-to-bot communication)
 # Edit these IDs to match your friend's bots on the server
@@ -35,7 +40,43 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-def grade_response_via_nemotron(prompt, agent_response):
+
+def shared_memory_context():
+    """Read the same canonical inputs NemoHermes recorded once per message."""
+    try:
+        response = requests.get(SHARED_MEMORY_URL, timeout=4)
+        if response.ok:
+            return response.json().get("memory", [])[:12]
+    except requests.RequestException:
+        pass
+    return []
+
+
+def shared_memory(message):
+    """Write one canonical Discord input, then retrieve shared recent context."""
+    event_key = f"discord:{message.id}"
+    try:
+        requests.post(
+            f"{SHARED_MEMORY_PROXY_URL}/memory/events",
+            json={
+                "event_key": event_key,
+                "source_agent": "nemoclaw",
+                "guild_id": str(message.guild.id) if message.guild else None,
+                "channel_id": str(message.channel.id),
+                "message_id": str(message.id),
+                "author_id": str(message.author.id),
+                "input_text": message.content,
+            },
+            timeout=4,
+        )
+        response = requests.get(f"{SHARED_MEMORY_PROXY_URL}/memory/recent", timeout=4)
+        if response.ok:
+            return response.json().get("memory", [])[:8]
+    except requests.RequestException as error:
+        print(f"[Shared memory] unavailable: {error}")
+    return []
+
+def grade_response_via_nemotron(prompt, agent_response, shared_context=None):
     """
     Calls NVIDIA Endpoints API to grade the specialist agent's consensus deal.
     """
@@ -60,7 +101,9 @@ def grade_response_via_nemotron(prompt, agent_response):
     
     user_prompt = (
         f"User Sourcing Query: \"{prompt}\"\n"
+        f"Shared user context: {json.dumps(shared_memory_context())}\n"
         f"Agent Consensus Deal: \"{agent_response}\"\n"
+        f"Shared recent user context: {json.dumps(shared_context or [])}\n"
         "Provide the scorecard JSON."
     )
     
@@ -98,6 +141,12 @@ async def on_message(message):
     # 2. Verification: Restrict to target bot-testing channel
     if DISCORD_CHANNEL_ID and str(message.channel.id) != str(DISCORD_CHANNEL_ID):
         return
+
+    # Do not ask the user for a second input or publish a separate answer.
+    # NemoHermes records the single input in Supabase; this bot only consumes
+    # it when invoked internally for a critic task.
+    if PASSIVE_MEMORY_ONLY:
+        return
         
     # 3. Verifier: Check if message is from a Bot
     is_bot = message.author.bot
@@ -111,6 +160,7 @@ async def on_message(message):
             
     # Process message if it triggers consensus keyword
     content = message.content
+    shared_context = shared_memory(message) if not is_bot else []
     if "Consensus Sourcing Result:" in content or "Deal Found:" in content:
         await message.channel.send("⚡ **Nemotron Critic Verification triggered... SAGE is auditing the deal** ⚡")
         
@@ -121,7 +171,7 @@ async def on_message(message):
             prompt = content.split("Prompt:")[1].split("Consensus")[0].strip()
             
         # Run Nemotron Critic Grading
-        scores = grade_response_via_nemotron(prompt, content)
+        scores = grade_response_via_nemotron(prompt, content, shared_context)
         
         A = scores.get("A", 100)
         S = scores.get("S", 100)
