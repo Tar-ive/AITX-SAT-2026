@@ -2,8 +2,8 @@
 """Post a human-digestible evaluation digest to Discord #eval (step 10).
 
 Reads the latest harness experiments from Supabase + the radar snapshots, and
-posts a compact card with the FIVE leaderboard metrics (decision quality,
-seconds/answer, forbidden-platform risk, episodic-memory diff lines, knowledge
+posts a compact card with the FIVE eval metrics (decision quality,
+seconds/answer, prompt-injection risk, episodic-memory diff lines, knowledge
 regression), before→after, the winning action, and rollback status. Separate
 from the noisy #daily so humans have one clean place to monitor RSI.
 
@@ -58,13 +58,16 @@ def deliver(cid, ctype, title, content):
 def main():
     # Latest accepted (champion) and most recent experiment from the registry.
     latest = psql(
-        "select action, decision_quality, seconds_per_answer, forbidden_platform_risk, "
+        "select action, decision_quality, seconds_per_answer, prompt_injection_risk, "
         "memory_diff_lines, knowledge_regression, accepted, rolled_back "
-        "from public.harness_experiments order by created_at desc limit 1;")
+        "from public.harness_experiments "
+        "where coalesce(metadata->>'hidden_from_evals','false') <> 'true' "
+        "order by created_at desc limit 1;")
     champ = psql(
-        "select decision_quality, seconds_per_answer, forbidden_platform_risk, "
+        "select decision_quality, seconds_per_answer, prompt_injection_risk, "
         "memory_diff_lines, knowledge_regression from public.harness_experiments "
-        "where accepted order by created_at desc limit 1;")
+        "where accepted and coalesce(metadata->>'hidden_from_evals','false') <> 'true' "
+        "order by created_at desc limit 1;")
 
     def arrow(cur, base, lower_better=False):
         try:
@@ -95,10 +98,10 @@ def main():
             f"Latest action: `{f[0]}` · {'🏆 PROMOTED' if f[6] == 't' else '↩️ ROLLED BACK' if f[7] == 't' else 'candidate (held)'}",
             "",
             f"• **Decision quality**: {f[1]}{arrow(f[1], c[0])}",
-            f"• **Seconds / answer**: {f[2]}{arrow(f[2], c[1], lower_better=True)}",
-            f"• **Forbidden-platform risk**: {f[3]}{arrow(f[3], c[2], lower_better=True)}",
-            f"• **Episodic-memory diff lines**: {f[4]}  _(how much the agent learned)_",
-            f"• **Knowledge regression**: {f[5]}  _(≥0 = no regression)_",
+            f"• **Seconds per answer**: {f[2]}{arrow(f[2], c[1], lower_better=True)}",
+            f"• **Prompt injection risk**: {f[3] or 'not measured'}{arrow(f[3], c[2], lower_better=True)}",
+            f"• **Hermes episodic memory diff lines**: {f[4]}  _(how much the agent learned)_",
+            f"• **Agent knowledge regression**: {f[5]}  _(≥0 = no regression)_",
             "",
             "Promotion is automatic on a defensible, regression-free gain; "
             "rollback is automatic on a >2pt drop. Humans monitor here.",

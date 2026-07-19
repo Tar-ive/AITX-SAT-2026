@@ -5,8 +5,8 @@ const catalog={
   macbook:{label:"MacBook",target:699,icon:"fa-laptop"},
   ram:{label:"DDR5 RAM",target:199,icon:"fa-memory"}
 };
-const state={category:"gpu",market:null,deals:[],dealFilter:"all",improvement:[],operations:null,experiments:null,limit:3};
-let marketChart,improvementChart,toastTimer;
+const state={category:"gpu",market:null,deals:[],dealFilter:"all",experiments:null,limit:3};
+let marketChart,toastTimer;
 const karpathyCharts={};
 
 const money=(n,currency="USD")=>new Intl.NumberFormat("en-US",{style:"currency",currency,maximumFractionDigits:n<1000?2:0}).format(n);
@@ -23,10 +23,11 @@ async function api(path){
   return payload;
 }
 
-function showPage(id){
+function showPage(requestedId){
+  const id=requestedId==="leaderboard"?"evals":requestedId;
   const page=$(`#${id}-page`);
   if(!page)return;
-  const focusView=["leaderboard","methodology"].includes(id);
+  const focusView=["evals","methodology"].includes(id);
   document.body.classList.toggle("focus-view",focusView);
   $$(".method-video video").forEach(video=>id==="methodology"?video.play().catch(()=>{}):video.pause());
   $$(".page").forEach(el=>el.classList.toggle("active",el===page));
@@ -35,10 +36,7 @@ function showPage(id){
   window.scrollTo({top:0,behavior:"smooth"});
   history.replaceState(null,"",`#${id}`);
   if(id==="dashboard")setTimeout(()=>marketChart?.resize(),0);
-  if(id==="leaderboard")setTimeout(()=>{
-    improvementChart?.resize();
-    Object.values(karpathyCharts).forEach(c=>c?.resize());
-  },0);
+  if(id==="evals")setTimeout(()=>Object.values(karpathyCharts).forEach(c=>c?.resize()),0);
 }
 
 function renderListingRows(rows){
@@ -137,125 +135,70 @@ async function loadDeals(){
   }
 }
 
-const metricCell=(value,ci,format,trend)=>value==null
-  ?'<td class="unavailable"><b>—</b><small>not measured</small></td>'
-  :`<td class="${trend}"><b>${format(value)}</b><small>${ci==null?"":`±${format(ci)}`}</small></td>`;
-function trendClass(value,baseline,higherIsBetter){
-  if(value==null||baseline==null)return"same";
-  const delta=value-baseline;
-  if(Math.abs(delta)<.0001)return"same";
-  return(higherIsBetter?delta>0:delta<0)?"better":"worse";
+const metricMeta={
+  accuracy:{label:"Decision quality",format:value=>Number(value).toFixed(3)},
+  retrieval_s:{label:"Seconds per answer",format:value=>`${Number(value).toFixed(2)}s`},
+  prompt_injection_risk:{label:"Prompt injection risk",format:value=>`${Number(value).toFixed(1)}%`},
+  episodic_diff_lines:{label:"Hermes episodic memory diff lines",format:value=>`${Number(value).toFixed(0)} lines`},
+  knowledge_regression:{label:"Agent knowledge regression",format:value=>Number(value).toFixed(4)}
+};
+const measured=value=>value!==null&&value!==undefined&&Number.isFinite(Number(value));
+const evalStatus=exp=>exp.kept||exp.accepted?"PROMOTED":exp.rolled_back?"ROLLED BACK":"EVALUATED";
+const evalTime=value=>{
+  const date=new Date(value);
+  return Number.isNaN(date.valueOf())?String(value||"Unknown time"):new Intl.DateTimeFormat("en-US",{
+    month:"short",day:"numeric",hour:"numeric",minute:"2-digit"
+  }).format(date);
+};
+
+function renderResearchDetail(exp,metric="accuracy",previous=null){
+  if(!exp)return;
+  const evidence=exp.evidence||{};
+  const meta=metricMeta[metric]||metricMeta.accuracy;
+  const value=measured(exp[metric])?Number(exp[metric]):null;
+  const prior=measured(previous?.[metric])?Number(previous[metric]):null;
+  const delta=value!==null&&prior!==null?value-prior:null;
+  $("#research-detail-title").textContent=`#${exp.experiment} · ${exp.description||exp.version}`;
+  $("#research-detail-decision").textContent=[
+    evalStatus(exp),
+    `${meta.label}: ${value===null?"not measured":meta.format(value)}`,
+    `Δ ${delta===null?"—":`${delta>=0?"+":""}${meta.format(delta)}`}`
+  ].join(" · ");
+  $("#research-detail-source").textContent=[evidence.source,evidence.source_detail].filter(Boolean).join(" · ")||"Live EC2 experiment";
+  $("#research-detail-change").textContent=evidence.improvement||exp.description||"No harness change recorded.";
+  $("#research-detail-preference").textContent=evidence.preference||"No explicit preference attached to this trial.";
+  $("#research-detail-test").textContent=[
+    `${exp.episodes_tried||0} episodes · ${exp.rollouts||0} rollouts · ${exp.stored_samples||0} stored samples`,
+    evidence.memory_change,
+    evidence.tested_by
+  ].filter(Boolean).join(" · ");
 }
 
-function renderImprovement(payload){
-  state.improvement=payload.runs;
-  const runs=payload.runs, baseline=runs.find(run=>run.baseline)||runs.at(-1);
-  const candidates=[...payload.candidates].sort((a,b)=>a.step-b.step);
-  $("#improvement-evidence").textContent=payload.evidence_status==="illustrative"?"Prototype evaluation history":`${candidates.length} measured runs`;
-  $("#benchmark-note").textContent=`95% confidence intervals · ${payload.evidence_status}`;
-  $("#improvement-table").innerHTML=runs.map((run,index)=>{
-    const movement=index===0?'<span class="movement up">↑ 1</span>':index===1?'<span class="movement down">↓ 1</span>':'<span class="movement">–</span>';
-    return`<tr class="${run.current?"champion":""}">
-      <td><span class="rank">${index+1}</span>${movement}</td>
-      <td><strong>${esc(run.version)}${run.current?" (current)":""}</strong><small>${esc(run.label)}</small></td>
-      ${metricCell(run.decision_quality,run.decision_ci,v=>v.toFixed(3),trendClass(run.decision_quality,baseline.decision_quality,true))}
-      ${metricCell(run.landed_price_error,run.landed_ci,v=>`${v.toFixed(1)}%`,trendClass(run.landed_price_error,baseline.landed_price_error,false))}
-      ${metricCell(run.latency,run.latency_ci,v=>`${v.toFixed(2)}s`,trendClass(run.latency,baseline.latency,false))}
-      ${metricCell(run.valid_url_rate,run.url_ci,v=>`${v.toFixed(1)}%`,trendClass(run.valid_url_rate,baseline.valid_url_rate,true))}
-      ${metricCell(run.unsupported_claims,run.claims_ci,v=>`${v.toFixed(2)}%`,trendClass(run.unsupported_claims,baseline.unsupported_claims,false))}
-      ${metricCell(run.forecast_regret,run.regret_ci,v=>money(v),trendClass(run.forecast_regret,baseline.forecast_regret,false))}
-    </tr>`;
-  }).join("");
-
-  const current=runs.find(run=>run.current)||runs[0], latest=candidates.at(-1);
-  if(candidates.length===1){
-    $("#improvement-summary").innerHTML=`
-      <p class="eyebrow">Measured baseline established</p>
-      <strong>${current.decision_quality.toFixed(3)}</strong><span>decision quality · ±${current.decision_ci.toFixed(3)}</span>
-      <dl><div><dt>Rollouts</dt><dd>${current.sample_size}</dd></div><div><dt>Median latency</dt><dd>${current.latency.toFixed(2)}s</dd></div><div><dt>Teacher</dt><dd>${esc(current.teacher_model)}</dd></div></dl>
-      <small>Memory is off. Run the first lessons-informed challenger to begin the trend.</small>`;
-  }else{
-    const decisionGain=(latest.decision_quality-current.decision_quality)/current.decision_quality*100;
-    $("#improvement-summary").innerHTML=`
-      <p class="eyebrow">${latest.accepted?"Promoted":"Challenger held"}</p>
-      <strong>${decisionGain>=0?"+":""}${decisionGain.toFixed(1)}%</strong><span>decision quality</span>
-      <dl><div><dt>Candidate</dt><dd>${esc(latest.version)}</dd></div><div><dt>Champion</dt><dd>${esc(current.version)}</dd></div><div><dt>Decision</dt><dd>${latest.accepted?"Promoted":"No change"}</dd></div></dl>
-      <small>${esc(latest.policy_change)}</small>`;
-  }
-  renderImprovementChart(runs,payload.candidates);
-}
-
-function renderImprovementChart(runs,candidates=[]){
-  const ordered=[...candidates].sort((a,b)=>a.step-b.step);
-  let champion=null;
-  const championLine=ordered.map(candidate=>{if(candidate.accepted)champion=candidate.decision_quality;return champion});
-  improvementChart?.destroy();
-  improvementChart=new Chart($("#improvement-chart"),{type:"line",data:{labels:ordered.map(run=>run.version),datasets:[
-    {label:"Champion",data:championLine,stepped:"after",borderColor:"#e84c6a",backgroundColor:"#e84c6a",pointRadius:4,borderWidth:3},
-    {label:"Evaluated candidate",data:ordered.map(run=>run.decision_quality),showLine:false,pointBackgroundColor:ordered.map(run=>run.accepted?"#28754c":"#aaa69b"),pointBorderColor:"#fffdf7",pointRadius:6}
-  ]},options:{animation:false,responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:14,font:{family:"DM Sans",size:11}}}},scales:{
-    x:{grid:{display:false},ticks:{font:{family:"DM Mono",size:10}}},
-    y:{suggestedMin:.45,suggestedMax:.80,title:{display:true,text:"Decision quality"},ticks:{font:{family:"DM Mono",size:9}},grid:{color:"#ded8cc"}}
-  }}});
-}
-
-/** Karpathy-style keep/discard staircase for one metric. */
+/** Connect every measured run; color communicates promotion or rollback. */
 function renderKarpathyChart(canvasId, experiments, metric, opts={}){
   const canvas=$(`#${canvasId}`);
   if(!canvas||!window.Chart)return;
-  let best=null;
-  const running=[], discarded=[], keptPts=[];
-  experiments.forEach((e,i)=>{
-    if(e.kept||e.accepted){
-      best=e[metric];
-      keptPts.push(e[metric]);
-      discarded.push(null);
-    }else{
-      keptPts.push(null);
-      discarded.push(e[metric]);
-    }
-    running.push(best);
-  });
-  const labels=experiments.map(e=>e.experiment);
+  const values=experiments.map(exp=>measured(exp[metric])?Number(exp[metric]):null);
+  const colors=experiments.map(exp=>exp.rolled_back?"#a64c3c":exp.kept||exp.accepted?"#28754c":"#fffdf7");
+  const borders=experiments.map(exp=>exp.rolled_back?"#a64c3c":exp.kept||exp.accepted?"#28754c":"#171711");
   karpathyCharts[canvasId]?.destroy();
-  const showLabels=!!opts.annotate;
   karpathyCharts[canvasId]=new Chart(canvas,{
     type:"line",
     data:{
-      labels,
-      datasets:[
-        {
-          label:"Discarded",
-          data:discarded,
-          showLine:false,
-          pointRadius:3,
-          pointHoverRadius:5,
-          pointBackgroundColor:"#c8c4ba",
-          pointBorderWidth:0,
-          order:1
-        },
-        {
-          label:"Kept",
-          data:keptPts,
-          showLine:false,
-          pointRadius:5.5,
-          pointHoverRadius:7,
-          pointBackgroundColor:"#fffdf7",
-          pointBorderColor:"#28754c",
-          pointBorderWidth:2,
-          order:3
-        },
-        {
-          label:"Running best",
-          data:running,
-          stepped:"after",
-          borderColor:"#28754c",
-          borderWidth:2.4,
-          pointRadius:0,
-          spanGaps:true,
-          order:2
-        }
-      ]
+      labels:experiments.map(exp=>evalTime(exp.ts)),
+      datasets:[{
+        label:"Measured eval",
+        data:values,
+        borderColor:"#28754c",
+        borderWidth:2.4,
+        pointRadius:6,
+        pointHoverRadius:8,
+        pointBackgroundColor:colors,
+        pointBorderColor:borders,
+        pointBorderWidth:2,
+        spanGaps:true,
+        tension:.18
+      }]
     },
     options:{
       animation:false,
@@ -272,18 +215,28 @@ function renderKarpathyChart(canvasId, experiments, metric, opts={}){
           callbacks:{
             title:items=>{
               const exp=experiments[items[0]?.dataIndex ?? 0];
-              return exp?`#${exp.experiment} · ${exp.ts?.slice(5,16)||exp.version}`:"";
+              return exp?`#${exp.experiment} · ${evalTime(exp.ts)}`:"";
             },
             afterBody:items=>{
               const exp=experiments[items[0]?.dataIndex ?? 0];
-              return exp?.description?[`${exp.kept||exp.accepted?"KEPT":"discarded"}: ${exp.description}`]:[];
+              const evidence=exp?.evidence||{};
+              return exp?[
+                `${evalStatus(exp)}: ${exp.description}`,
+                `Evidence: ${evidence.source||"live EC2 research"}`,
+                `Preference: ${(evidence.preference||"none attached").slice(0,90)}`,
+                `Test: ${(evidence.tested_by||"Verifiers golden set").slice(0,90)}`
+              ]:[];
             }
           }
         }
       },
+      onHover:(_event,elements)=>{
+        const index=elements[0]?.index;
+        if(index!=null)renderResearchDetail(experiments[index],metric,experiments[index-1]);
+      },
       scales:{
         x:{
-          title:{display:true,text:"Experiment #",font:{family:"DM Mono",size:10}},
+          title:{display:true,text:"Evaluated at",font:{family:"DM Mono",size:10}},
           grid:{display:false},
           ticks:{font:{family:"DM Mono",size:9},color:"#77736a",maxTicks:10}
         },
@@ -293,116 +246,92 @@ function renderKarpathyChart(canvasId, experiments, metric, opts={}){
           ticks:{font:{family:"DM Mono",size:9},color:"#77736a"}
         }
       }
-    },
-    plugins: showLabels?[{
-      id:"keptLabels",
-      afterDatasetsDraw(chart){
-        const meta=chart.getDatasetMeta(1);
-        const ctx=chart.ctx;
-        ctx.save();
-        ctx.font="9px DM Mono, monospace";
-        ctx.fillStyle="#3d3a32";
-        experiments.forEach((e,i)=>{
-          if(!(e.kept||e.accepted))return;
-          const pt=meta.data[i];
-          if(!pt||pt.skip)return;
-          ctx.save();
-          ctx.translate(pt.x+4, pt.y-4);
-          ctx.rotate(-Math.PI/7);
-          ctx.fillText((e.description||"").slice(0,34),0,0);
-          ctx.restore();
-        });
-        ctx.restore();
-      }
-    }]:[]
+    }
   });
 }
 
-function fmtDelta(start, now, digits=3, invert=false){
-  const d=now-start;
-  const good=invert?d<0:d>0;
-  const arrow=d>0?"▲":d<0?"▼":"–";
-  return `${arrow} ${Math.abs(d).toFixed(digits)}`;
+function renderEvalResults(experiments){
+  const host=$("#eval-results");
+  if(!host)return;
+  host.innerHTML=experiments.map((exp,index)=>{
+    const episodes=exp.sample_episodes||[];
+    const status=evalStatus(exp);
+    const episodeRows=episodes.map(episode=>`
+      <details class="episode-result">
+        <summary>
+          <span>Episode ${Number(episode.episode_index)+1}</span>
+          <b>${measured(episode.decision_quality)?Number(episode.decision_quality).toFixed(3):"—"} quality</b>
+          <b>${measured(episode.median_seconds)?`${Number(episode.median_seconds).toFixed(2)}s`:"—"}</b>
+          <i class="fa-solid fa-chevron-down"></i>
+        </summary>
+        <p class="episode-prompt">${esc(episode.prompt)}</p>
+        <div class="rollout-list">
+          ${(episode.rollouts||[]).map(run=>`
+            <div class="rollout-row">
+              <strong>R${esc(run.rollout_number??"—")}</strong>
+              <span>Quality <b>${measured(run.decision_quality)?Number(run.decision_quality).toFixed(3):"—"}</b></span>
+              <span>Time <b>${measured(run.seconds_per_answer)?`${Number(run.seconds_per_answer).toFixed(2)}s`:"—"}</b></span>
+              <span>Platform <b>${esc(run.platform)}</b></span>
+              <span>${esc(run.condition||"condition —")}${run.lead_time_days!=null?` · ${esc(run.lead_time_days)}d`:""}</span>
+            </div>`).join("")}
+        </div>
+      </details>`).join("");
+    const empty=`<p class="eval-results-empty">No raw samples persisted${exp.failed_rollouts?` · ${esc(exp.failed_rollouts)} provider calls failed`:""}.</p>`;
+    return `
+      <details class="eval-result-card" ${index===experiments.length-1?"open":""}>
+        <summary>
+          <span class="eval-result-index">${String(index+1).padStart(2,"0")}</span>
+          <span class="eval-result-name"><strong>${esc(exp.description||exp.version)}</strong><small>${esc(evalTime(exp.ts))}</small></span>
+          <span class="eval-result-count"><b>${esc(exp.episodes_tried||episodes.length)}</b> episodes</span>
+          <span class="eval-result-count"><b>${esc(exp.stored_samples||0)}</b> samples</span>
+          <span class="eval-result-status ${status.toLowerCase().replace(" ","-")}">${status}</span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </summary>
+        <div class="episode-list">${episodeRows||empty}</div>
+      </details>`;
+  }).join("")||'<p class="eval-results-empty">No evaluation evidence stored yet.</p>';
 }
 
 function renderExperiments(payload){
   state.experiments=payload;
-  const exps=payload.experiments||[];
+  const exps=(payload.experiments||[]).map(exp=>({
+    ...exp,
+    retrieval_s:measured(exp.retrieval_s)?Number(exp.retrieval_s):null,
+    prompt_injection_risk:measured(exp.prompt_injection_risk)?Number(exp.prompt_injection_risk):null,
+    episodic_diff_lines:Number(exp.episodic_diff_lines??0),
+    knowledge_regression:Number(exp.knowledge_regression??exp.agent_regression??0)
+  }));
   const s=payload.summary||{};
-  $("#improvement-evidence").textContent=`${s.experiments||exps.length} experiments · ${s.kept||0} kept · ${payload.seed}`;
-  $("#seed-value").textContent=String(payload.seed??"—");
-  $("#seed-exp-count").textContent=String(s.experiments??exps.length);
-  $("#seed-kept-count").textContent=String(s.kept??0);
+  const sourceLabel=payload.source||"live Supabase evaluations";
+  $("#improvement-evidence").textContent=`${s.experiments||exps.length} evals · ${s.episodes_tried||0} episodes · ${s.rollouts||0} rollouts · ${sourceLabel}`;
+  $("#seed-value").textContent=sourceLabel;
+  $("#seed-eval-count").textContent=String(s.experiments??exps.length);
+  $("#seed-episode-count").textContent=String(s.episodes_tried??0);
+  $("#seed-rollout-count").textContent=String(s.rollouts??0);
   const note=payload.seed_justification?.supabase_note||"";
-  $("#seed-note").textContent=note||"Measured experiment history from the live EC2 loop.";
-  const methodSeed=$("#method-seed");
-  if(methodSeed)methodSeed.textContent=String(payload.seed??"—");
-
+  $("#seed-note").textContent=`${note||"Measured evaluation history from Supabase."} · ${s.stored_samples||0}/${s.rollouts||0} raw rollout samples persisted.`;
   $("#acc-delta").textContent=`${(s.accuracy_start??0).toFixed(3)} → ${(s.accuracy_now??0).toFixed(3)}`;
-  $("#ret-delta").textContent=`${(s.retrieval_start??0).toFixed(1)}s → ${(s.retrieval_now??0).toFixed(1)}s`;
-  $("#price-delta").textContent=`${(s.price_regression_start??0).toFixed(1)} → ${(s.price_regression_now??0).toFixed(1)}`;
-  $("#agent-delta").textContent=`${(s.agent_regression_start??0).toFixed(3)} → ${(s.agent_regression_now??0).toFixed(3)}`;
+  $("#ret-delta").textContent=measured(s.retrieval_start)&&measured(s.retrieval_now)?`${Number(s.retrieval_start).toFixed(1)}s → ${Number(s.retrieval_now).toFixed(1)}s`:"not measured";
+  $("#injection-delta").textContent=measured(s.prompt_injection_risk_start)&&measured(s.prompt_injection_risk_now)?`${Number(s.prompt_injection_risk_start).toFixed(1)} → ${Number(s.prompt_injection_risk_now).toFixed(1)}`:"not measured";
+  $("#injection-empty").hidden=exps.some(exp=>measured(exp.prompt_injection_risk));
+  $("#memory-delta").textContent=`${Number(s.episodic_diff_now??exps.at(-1)?.episodic_diff_lines??0).toFixed(0)} lines`;
+  $("#knowledge-delta").textContent=`${Number(s.knowledge_regression_start??0).toFixed(3)} → ${Number(s.knowledge_regression_now??exps.at(-1)?.knowledge_regression??0).toFixed(3)}`;
 
-  renderKarpathyChart("chart-accuracy", exps, "accuracy", {yLabel:"Accuracy (↑ better)"});
-  renderKarpathyChart("chart-retrieval", exps, "retrieval_s", {yLabel:"Seconds (↓ better)", lowerIsBetter:false});
-  renderKarpathyChart("chart-price", exps, "price_regression", {yLabel:"Price regression (↓ better)"});
-  renderKarpathyChart("chart-agent", exps, "agent_regression", {yLabel:"Agent regression (↓ better)"});
-  renderKarpathyChart("chart-overview", exps, "accuracy", {yLabel:"Accuracy", annotate:true});
-
-  const kept=exps.filter(e=>e.kept||e.accepted);
-  $("#kept-log").innerHTML=kept.map(e=>`
-    <li><b>#${e.experiment}</b> <span>${esc(e.ts?.slice(0,16)||"")}</span>
-    <strong>${e.accuracy.toFixed(4)}</strong> · ${e.retrieval_s.toFixed(2)}s
-    <em>${esc(e.description)}</em></li>`).join("");
+  renderKarpathyChart("chart-accuracy", exps, "accuracy", {yLabel:"Decision quality"});
+  renderKarpathyChart("chart-retrieval", exps, "retrieval_s", {yLabel:"Seconds per answer"});
+  renderKarpathyChart("chart-injection", exps, "prompt_injection_risk", {yLabel:"Prompt injection risk"});
+  renderKarpathyChart("chart-memory", exps, "episodic_diff_lines", {yLabel:"Hermes memory diff lines"});
+  renderKarpathyChart("chart-knowledge", exps, "knowledge_regression", {yLabel:"Agent knowledge regression"});
+  renderResearchDetail(exps.at(-1),"accuracy",exps.at(-2));
+  renderEvalResults(exps);
 }
 
 async function loadExperiments(){
-  // Prefer API; fall back to static JSON committed in the repo.
   try{
     renderExperiments(await api("/api/autoresearch-experiments"));
-    return;
-  }catch(_){}
-  try{
-    const paths=[`data/autoresearch_experiments.json?t=${Date.now()}`,`../data/autoresearch_experiments.json?t=${Date.now()}`];
-    let res=null;
-    for(const path of paths){res=await fetch(path);if(res.ok)break;}
-    if(!res||!res.ok)throw new Error("offline experiment history missing");
-    renderExperiments(await res.json());
   }catch(error){
-    $("#improvement-evidence").textContent="Experiment history unavailable";
+    $("#improvement-evidence").textContent="Supabase evaluation history unavailable";
     $("#seed-note").textContent=error.message;
-  }
-}
-
-async function loadImprovement(){
-  try{renderImprovement(await api("/api/improvement"))}
-  catch(error){
-    $("#improvement-table").innerHTML=`<tr><td colspan="8">Evaluation API unavailable: ${esc(error.message)}</td></tr>`;
-    $("#improvement-summary").innerHTML="<strong>No evaluation history</strong><p>Start the dashboard API and refresh.</p>";
-  }
-}
-
-function renderOperations(payload){
-  state.operations=payload;
-  const {lessons,latest_eval:latest}=payload;
-  $("#lessons-status").innerHTML=lessons.status==="synced"&&lessons.lesson_count>0
-    ?`<i class="fa-solid fa-circle-check"></i> ${lessons.lesson_count} lessons synced · ${esc(relativeTime(lessons.updated_at))}`
-    :lessons.status==="synced"
-    ?'<i class="fa-solid fa-circle-check"></i> No cloud lesson promotion yet'
-    :'<i class="fa-solid fa-cloud-arrow-down"></i> Lessons file awaiting cloud sandbox sync';
-  $("#fresh-run-strip").innerHTML=latest?`
-    <span><small>Latest measured run</small><strong>${esc(latest.model.split("/").at(-1))}</strong></span>
-    <span><small>Decision quality</small><strong>${latest.avg_reward.toFixed(3)}</strong></span>
-    <span><small>Valid JSON</small><strong>${latest.avg_metrics.valid_json_rate_pct.toFixed(1)}%</strong></span>
-    <span><small>Rollouts</small><strong>${latest.rollout_count}</strong></span>
-    <span><small>Evaluation time</small><strong>${latest.eval_seconds.toFixed(1)}s</strong></span>
-  `:'<span><small>Latest measured run</small><strong>Awaiting first evaluation</strong></span>';
-}
-
-async function loadOperations(){
-  try{renderOperations(await api("/api/rsi-operations"))}
-  catch(error){
-    $("#lessons-status").innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> RSI operations unavailable';
   }
 }
 
@@ -430,6 +359,17 @@ function initRsiLoop(){
   const orbit=new THREE.Group();
   scene.add(orbit);
   const count=cards.length, rx=4.5, ry=4;
+  const stepLabel=$("#loop-step-label"), stepTitle=$("#loop-step-title"), stepDetail=$("#loop-step-detail");
+  const showStep=card=>{
+    const index=Number(card.dataset.loopIndex), title=$("h3",card)?.textContent||"Research Loop";
+    stepLabel.textContent=`Step ${String(index+1).padStart(2,"0")} · live`;
+    stepTitle.innerHTML=title.replace(" ","<br>");
+    stepDetail.textContent=card.dataset.loopDetail||"Measured evidence moves through the recursive loop.";
+  };
+  cards.forEach(card=>{
+    card.addEventListener("mouseenter",()=>showStep(card));
+    card.addEventListener("focusin",()=>showStep(card));
+  });
   const points=Array.from({length:64},(_,i)=>{
     const angle=i/64*Math.PI*2;
     return new THREE.Vector3(Math.cos(angle)*rx,Math.sin(angle)*ry,0);
@@ -519,8 +459,6 @@ $("#product-select").addEventListener("change",event=>{$("#target-price").value=
 $("#watch-form").addEventListener("submit",event=>{event.preventDefault();renderMarket(state.market);showToast("Target updated locally. Sign-in is required before saving a Supabase watchlist.")});
 $$(".segmented button").forEach(el=>el.addEventListener("click",()=>{$$(".segmented button").forEach(button=>button.classList.toggle("active",button===el));state.limit=+el.dataset.range;renderMarketChart(state.market?.listings||[])}));
 $$(".filter-chip").forEach(el=>el.addEventListener("click",()=>{$$(".filter-chip").forEach(button=>button.classList.toggle("active",button===el));renderDeals(el.dataset.filter)}));
-$("#benchmark-select").addEventListener("change",event=>$("#benchmark-label").textContent=event.target.value);
-$("#run-evaluation").addEventListener("click",async event=>{event.currentTarget.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Refreshing';await Promise.all([loadImprovement(),loadOperations(),loadExperiments()]);event.currentTarget.innerHTML='<i class="fa-solid fa-check"></i> History refreshed';showToast("Evidence refreshed. Promotion remains a human decision.")});
 $(".toggle").addEventListener("click",event=>event.currentTarget.classList.toggle("active"));
 const enterFullscreen=async element=>{
   const video=$("video",element);
@@ -572,5 +510,5 @@ zoom.addEventListener("close",()=>{const video=$("video",zoomStage);video?.pause
 window.addEventListener("hashchange",()=>showPage(location.hash.slice(1)||"dashboard"));
 
 initRsiLoop();
-Promise.allSettled([loadMarket(),loadDeals(),loadImprovement(),loadOperations(),loadRsiIdeas(),loadExperiments()]);
+Promise.allSettled([loadMarket(),loadDeals(),loadRsiIdeas(),loadExperiments()]);
 showPage(location.hash.slice(1)||"dashboard");
