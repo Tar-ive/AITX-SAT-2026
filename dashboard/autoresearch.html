@@ -66,9 +66,12 @@ function trend(cv,hist){
   const last=pts[pts.length-1],x=8+(W-16),y=H-8-(H-16)*(last-min)/(max-min||1);
   c.beginPath();c.arc(x-0.01,y,4,0,7);c.fillStyle=css("--amber");c.fill();
 }
+const API=(location.hostname.endsWith("railway.app")||location.protocol==="https:")?location.origin:"";
 async function refresh(){
   let hist=[];
-  try{ hist=await (await fetch("../data/radar_snapshots.json?t="+Date.now())).json(); }catch(e){}
+  // Prefer the live coordinator API; fall back to the committed file for local use.
+  try{ hist=await (await fetch(API+"/api/radar?t="+Date.now())).json(); }catch(e){}
+  if(!hist.length){ try{ hist=await (await fetch("../data/radar_snapshots.json?t="+Date.now())).json(); }catch(e){} }
   if(!hist.length){document.getElementById("stats").textContent="no snapshots yet — loop warming up";return;}
   const before=hist[0], champs=hist.filter(e=>e.role==="champion"), after=champs[champs.length-1]||before;
   radar(document.getElementById("before"),before,css("--muted"));

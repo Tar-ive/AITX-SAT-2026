@@ -159,11 +159,12 @@ def snapshot(entry):
     SNAPSHOTS.parent.mkdir(exist_ok=True)
     SNAPSHOTS.write_text(json.dumps(hist, indent=1))
     if COORD:
-        try:
-            requests.post(f"{COORD}/api/evaluations", timeout=15, json={
-                "version": entry["version"], "source": "autoresearch-loop", **entry})
-        except requests.RequestException:
-            pass
+        for path in ("/api/radar", "/api/evaluations"):
+            try:
+                requests.post(f"{COORD}{path}", timeout=15,
+                              json={"source": "autoresearch-loop", **entry})
+            except requests.RequestException:
+                pass
     return hist
 
 

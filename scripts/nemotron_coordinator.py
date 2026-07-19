@@ -14,6 +14,7 @@ CONFIG_PATH = os.path.join(BASE_DIR, "scripts", "nemotron_config.json")
 DATASET_PATH = os.path.join(BASE_DIR, "scripts", "golden_dataset.json")
 EVAL_OUTPUT_PATH = os.path.join(BASE_DIR, "dashboard", "evaluations.json")
 MEMORY_OUTPUT_PATH = os.path.join(BASE_DIR, "dashboard", "episodic_memory.json")
+RADAR_OUTPUT_PATH = os.path.join(BASE_DIR, "dashboard", "radar_live.json")
 MEMORY_BUFFER_PATH = os.path.join(BASE_DIR, "docs", "memory_buffer.txt")
 
 # Global State
@@ -275,6 +276,20 @@ class CoordinatorAPIHandler(BaseHTTPRequestHandler):
                 json.dump(existing, f, indent=2)
             return self._reply(200, {"status": "success", "stored": len(rows), "total": len(existing)})
 
+        if parsed_path.path == "/api/radar":
+            rows = body if isinstance(body, list) else [body]
+            existing = []
+            if os.path.exists(RADAR_OUTPUT_PATH):
+                try:
+                    existing = json.load(open(RADAR_OUTPUT_PATH))
+                except Exception:
+                    existing = []
+            existing.extend(rows)
+            os.makedirs(os.path.dirname(RADAR_OUTPUT_PATH), exist_ok=True)
+            with open(RADAR_OUTPUT_PATH, "w") as f:
+                json.dump(existing, f, indent=2)
+            return self._reply(200, {"status": "success", "stored": len(rows), "total": len(existing)})
+
         return self._reply(404, {"error": "unknown endpoint"})
 
     def do_GET(self):
@@ -290,6 +305,26 @@ class CoordinatorAPIHandler(BaseHTTPRequestHandler):
                     self.wfile.write(f.read().encode())
             else:
                 self.wfile.write(json.dumps([]).encode())
+            return
+
+        if parsed_path.path == "/api/radar":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            if os.path.exists(RADAR_OUTPUT_PATH):
+                with open(RADAR_OUTPUT_PATH, "r") as f:
+                    self.wfile.write(f.read().encode())
+            else:
+                self.wfile.write(json.dumps([]).encode())
+            return
+
+        if parsed_path.path in ("/autoresearch", "/autoresearch.html"):
+            page = os.path.join(BASE_DIR, "dashboard", "autoresearch.html")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            with open(page, "rb") as f:
+                self.wfile.write(f.read())
             return
 
         if parsed_path.path == "/api/status":
